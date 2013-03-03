@@ -26,6 +26,13 @@ class CrmOrderQueryCommand implements Serializable {
     String number
     String product
     String customer
+    String address
+    String email
+    String telephone
+    String status
+    String type
+    String delivery
+    String campaign
     String fromDate
     String toDate
     String tags

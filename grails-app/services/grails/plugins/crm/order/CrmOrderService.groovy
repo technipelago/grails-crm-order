@@ -17,6 +17,7 @@
 package grails.plugins.crm.order
 
 import grails.events.Listener
+import grails.plugins.crm.core.CrmEmbeddedAddress
 import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
@@ -35,7 +36,7 @@ class CrmOrderService {
         // event = [feature: feature, tenant: tenant, role:role, expires:expires]
         TenantUtils.withTenant(event.tenant) {
             crmTagService.createTag(name: CrmOrder.name, multiple: true)
-            createOrderType(name: "Order", true)
+            createOrderType(name: "Order", param: "order", true)
             createOrderStatus(name: "Order", param: 'order', true)
             createOrderStatus(name: "Payed", param: 'payed', true)
             createOrderStatus(name: "Delivered", param: 'delivered', true)
@@ -105,9 +106,32 @@ class CrmOrderService {
             }
             if (query.customer) {
                 or {
-                    eq('customerRef', query.customer)
-                    eq('customerEmail', query.customer)
+                    eq('customerFirstName', query.customer)
+                    eq('customerLastName', query.customer)
+                    eq('customerCompany', query.customer)
                 }
+            }
+            if (query.address) {
+                or {
+                    ilike('invoice.address1', SearchUtils.wildcard(query.address))
+                    ilike('invoice.address2', SearchUtils.wildcard(query.address))
+                    ilike('invoice.postalCode', SearchUtils.wildcard(query.address))
+                    ilike('invoice.city', SearchUtils.wildcard(query.address))
+
+                    ilike('delivery.address1', SearchUtils.wildcard(query.address))
+                    ilike('delivery.address2', SearchUtils.wildcard(query.address))
+                    ilike('delivery.postalCode', SearchUtils.wildcard(query.address))
+                    ilike('delivery.city', SearchUtils.wildcard(query.address))
+                }
+            }
+            if (query.email) {
+                ilike('customerEmail', SearchUtils.wildcard(query.email))
+            }
+            if (query.telephone) {
+                ilike('customerTel', SearchUtils.wildcard(query.telephone))
+            }
+            if (query.campaign) {
+                ilike('campaign', SearchUtils.wildcard(query.campaign))
             }
             if (params.fromDate && params.toDate) {
                 def d1 = DateUtils.parseSqlDate(params.fromDate)
@@ -120,13 +144,56 @@ class CrmOrderService {
                 def d2 = DateUtils.parseSqlDate(params.toDate)
                 le('orderDate', d2)
             }
+            if (query.type) {
+                orderType {
+                    or {
+                        eq('param', query.type)
+                        ilike('name', SearchUtils.wildcard(query.type))
+                    }
+                }
+            }
+
+            if (query.status) {
+                orderStatus {
+                    or {
+                        eq('param', query.status)
+                        ilike('name', SearchUtils.wildcard(query.status))
+                    }
+                }
+            }
+
+            if (query.delivery) {
+                deliveryType {
+                    or {
+                        eq('param', query.delivery)
+                        ilike('name', SearchUtils.wildcard(query.delivery))
+                    }
+                }
+            }
         }
+    }
+
+    CrmOrder getOrder(Long id) {
+        CrmOrder.get(id)
+    }
+
+    CrmOrder findByNumber(String number, Long tenant = null) {
+        if (tenant == null) {
+            tenant = TenantUtils.tenant
+        }
+        CrmOrder.findByNumberAndTenantId(number, tenant)
     }
 
     CrmOrder createOrder(Map params, boolean save = false) {
         def tenant = TenantUtils.tenant
         def m = new CrmOrder()
         def args = [m, params]
+        /*if (params.invoice) {
+            m.invoice = new CrmEmbeddedAddress()
+        }
+        if (params.delivery) {
+            m.delivery = new CrmEmbeddedAddress()
+        }*/
         new BindDynamicMethod().invoke(m, 'bind', args.toArray())
         m.tenantId = tenant
         if (save) {
@@ -149,10 +216,6 @@ class CrmOrderService {
             }
         }
         return m
-    }
-
-    void cancelOrder(CrmOrder order) {
-        throw new UnsupportedOperationException("CrmOrderService#cancelOrder() not implemented")
     }
 
     CrmOrderType getOrderType(String param) {

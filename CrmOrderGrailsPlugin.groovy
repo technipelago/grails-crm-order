@@ -2,7 +2,7 @@ class CrmOrderGrailsPlugin {
     // Dependency group
     def groupId = "grails.crm"
     // the plugin version
-    def version = "1.0-SNAPSHOT"
+    def version = "1.0"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.0 > *"
     // the other plugins this plugin depends on
@@ -19,6 +19,8 @@ class CrmOrderGrailsPlugin {
     def authorEmail = "goran@technipelago.se"
     def description = '''\
 Simple order management for Grails CRM.
+This plugin provides the "headless" part of Grails CRM order management (i.e domains and services).
+The companion plugin crm-order-ui provides user the interface for order management.
 '''
 
     // URL to the plugin's documentation
@@ -30,13 +32,7 @@ Simple order management for Grails CRM.
 
     def features = {
         crmOrder {
-            description "Order Management"
-            link controller: "crmOrder", action: "index"
-            permissions {
-                guest "crmOrder:index,list,show"
-                user "crmOrder:*"
-                admin "crmOrder:*"
-            }
+            description "Order Management Services"
             hidden true
         }
     }

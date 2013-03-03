@@ -25,6 +25,7 @@ class CrmOrderItem {
     Integer orderIndex
     String productId
     String productName
+    String comment
     String unit
     Float quantity
     Float backorder
@@ -37,6 +38,7 @@ class CrmOrderItem {
         orderIndex()
         productId(maxSize: 40, blank: false)
         productName(maxSize: 255, blank: false)
+        comment(maxSize: 255, nullable: true)
         unit(maxSize: 40, nullable: false, blank: false)
         quantity(nullable: false, min: -999999f, max: 999999f, scale: 2)
         backorder(nullable: true, min: -999999f, max: 999999f, scale: 2)
@@ -44,14 +46,26 @@ class CrmOrderItem {
         vat(nullable: false, min: 0f, max: 1f, scale: 2)
     }
 
-    static transients = ['totalPrice', 'totalVat']
+    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat']
+
+    transient Float getPriceVAT() {
+        def p = price ?: 0
+        def v = vat ?: 0
+        return p + (p * v)
+    }
+
+    transient Float getTotalVat() {
+        getTotalPrice() * vat
+    }
 
     transient Float getTotalPrice() {
         (quantity ?: 0) * (price ?: 0)
     }
 
-    transient Float getTotalVat() {
-        getTotalPrice() * vat
+    transient Float getTotalPriceVAT() {
+        def p = getTotalPrice()
+        def v = vat ?: 0
+        return p + (p * v)
     }
 
     String toString() {
