@@ -41,7 +41,7 @@ class CrmOrder {
     public static final int EVENT_CHANGED = 1
 
     public static final List<String> BIND_WHITELIST = ['number', 'orderDate', 'deliveryDate',
-            'reference1', 'reference2', 'campaign', 'orderType', 'orderStatus', 'deliveryType',
+            'reference1', 'reference2', 'reference3', 'reference4', 'campaign', 'orderType', 'orderStatus', 'deliveryType',
             'customerNumber', 'customerRef', 'customerFirstName', 'customerLastName', 'customerCompany', 'customerTel', 'customerEmail',
             'invoice','delivery','totalAmount','totalVat'
     ]
@@ -54,6 +54,8 @@ class CrmOrder {
 
     String reference1
     String reference2
+    String reference3
+    String reference4
 
     String campaign
 
@@ -94,6 +96,8 @@ class CrmOrder {
         deliveryDate(nullable: true)
         reference1(maxSize: 80, nullable: true)
         reference2(maxSize: 80, nullable: true)
+        reference3(maxSize: 80, nullable: true)
+        reference4(maxSize: 80, nullable: true)
         campaign(maxSize: 40, nullable: true)
         orderType()
         orderStatus()
