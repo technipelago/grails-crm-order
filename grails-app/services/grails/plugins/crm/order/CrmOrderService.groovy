@@ -38,10 +38,10 @@ class CrmOrderService {
             crmTagService.createTag(name: CrmOrder.name, multiple: true)
             createOrderType(name: "Order", param: "order", true)
             createOrderStatus(name: "Order", param: 'order', true)
-            createOrderStatus(name: "Payed", param: 'payed', true)
-            createOrderStatus(name: "Delivered", param: 'delivered', true)
-            createOrderStatus(name: "Cancelled", param: 'cancel', true)
             createDeliveryType(name: "Standard", param: 'default', true)
+
+            createOrderStatus(orderIndex: 10, name: "Order", param: 'order', true)
+            log.debug "crmOrderService finished setup in tenant ${event.tenant}"
         }
     }
 
@@ -246,6 +246,19 @@ class CrmOrderService {
         return m
     }
 
+    List<CrmOrderType> listOrderType(Boolean enabled = null, CrmOrderType mandatory = null, Map params = [:]) {
+        def result = CrmOrderType.createCriteria().list(params) {
+            eq('tenantId', TenantUtils.tenant)
+            if (enabled != null) {
+                eq('enabled', enabled)
+            }
+        }
+        if (mandatory && !result.contains(mandatory)) {
+            result << mandatory
+        }
+        result
+    }
+
     CrmOrderStatus getOrderStatus(String param) {
         CrmOrderStatus.findByParamAndTenantId(param, TenantUtils.tenant, [cache: true])
     }
@@ -274,6 +287,19 @@ class CrmOrderService {
         return m
     }
 
+    List<CrmOrderStatus> listOrderStatus(Boolean enabled = null, CrmOrderStatus mandatory = null, Map params = [:]) {
+        def result = CrmOrderStatus.createCriteria().list(params) {
+            eq('tenantId', TenantUtils.tenant)
+            if (enabled != null) {
+                eq('enabled', enabled)
+            }
+        }
+        if (mandatory && !result.contains(mandatory)) {
+            result << mandatory
+        }
+        result
+    }
+
     CrmDeliveryType getDeliveryType(String param) {
         CrmDeliveryType.findByParamAndTenantId(param, TenantUtils.tenant, [cache: true])
     }
@@ -300,5 +326,18 @@ class CrmOrderService {
             }
         }
         return m
+    }
+
+    List<CrmDeliveryType> listDeliveryType(Boolean enabled = null, CrmDeliveryType mandatory = null, Map params = [:]) {
+        def result = CrmDeliveryType.createCriteria().list(params) {
+            eq('tenantId', TenantUtils.tenant)
+            if (enabled != null) {
+                eq('enabled', enabled)
+            }
+        }
+        if (mandatory && !result.contains(mandatory)) {
+            result << mandatory
+        }
+        result
     }
 }
