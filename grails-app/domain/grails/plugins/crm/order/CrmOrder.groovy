@@ -40,10 +40,10 @@ class CrmOrder {
     public static final int EVENT_RESET = 0
     public static final int EVENT_CHANGED = 1
 
-    public static final List<String> BIND_WHITELIST = ['number', 'orderDate', 'deliveryDate',
+    public static final List<String> BIND_WHITELIST = ['number', 'orderDate', 'deliveryDate', 'deliveryRef',
             'reference1', 'reference2', 'reference3', 'reference4', 'campaign', 'orderType', 'orderStatus', 'deliveryType',
             'customerNumber', 'customerRef', 'customerFirstName', 'customerLastName', 'customerCompany', 'customerTel', 'customerEmail',
-            'invoice','delivery','totalAmount','totalVat'
+            'invoice', 'delivery', 'totalAmount', 'totalVat'
     ]
 
     def crmCoreService
@@ -61,8 +61,8 @@ class CrmOrder {
 
     CrmOrderType orderType
     CrmOrderStatus orderStatus
-    //CrmDeliveryTerm deliveryTerm
     CrmDeliveryType deliveryType
+    String deliveryRef
 
     String customerNumber
     String customerRef
@@ -102,6 +102,7 @@ class CrmOrder {
         orderType()
         orderStatus()
         deliveryType(nullable: true)
+        deliveryRef(maxSize: 80, nullable: true)
         customerNumber(maxSize: 20, nullable: true)
         customerRef(maxSize: 80, nullable: true)
         customerFirstName(maxSize: 80, nullable: true)
@@ -126,7 +127,7 @@ class CrmOrder {
         items sort: 'orderIndex', 'asc'
     }
 
-    static transients = ['customer', 'customerName', 'totalAmountVAT']
+    static transients = ['customer', 'customerName', 'deliveryContact', 'totalAmountVAT']
 
     static taggable = true
     static attachmentable = true
@@ -138,6 +139,14 @@ class CrmOrder {
 
     transient void setCustomer(Object arg) {
         customerRef = crmCoreService.getReferenceIdentifier(arg)
+    }
+
+    transient Object getDeliveryContact() {
+        crmCoreService.getReference(deliveryRef)
+    }
+
+    transient void setDeliveryContact(Object arg) {
+        deliveryRef = crmCoreService.getReferenceIdentifier(arg)
     }
 
     transient Float getTotalAmountVAT() {
@@ -156,6 +165,12 @@ class CrmOrder {
                 s.append(' ')
             }
             s.append(customerLastName)
+        }
+        if (s.length() == 0 && customerRef?.startsWith('crmContact@')) {
+            def c = getCustomer()
+            if (c) {
+                s << c.toString()
+            }
         }
         s.toString()
     }
