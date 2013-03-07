@@ -31,6 +31,7 @@ class CrmOrderItem {
     Float backorder
     Float price
     Float vat
+    Float discount
 
     static belongsTo = [order: CrmOrder]
 
@@ -42,11 +43,12 @@ class CrmOrderItem {
         unit(maxSize: 40, nullable: false, blank: false)
         quantity(nullable: false, min: -999999f, max: 999999f, scale: 2)
         backorder(nullable: true, min: -999999f, max: 999999f, scale: 2)
+        discount(nullable: true, min: -999999f, max: 999999f, scale: 2)
         price(nullable: false, min: -999999f, max: 999999f, scale: 2)
         vat(nullable: false, min: 0f, max: 1f, scale: 2)
     }
 
-    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat']
+    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat', 'discountPrice']
 
     transient Float getPriceVAT() {
         def p = price ?: 0
@@ -55,17 +57,37 @@ class CrmOrderItem {
     }
 
     transient Float getTotalVat() {
-        getTotalPrice() * vat
+        getTotalPrice() * (vat ?: 0)
     }
 
     transient Float getTotalPrice() {
-        (quantity ?: 0) * (price ?: 0)
+        def p = (quantity ?: 0) * (price ?: 0)
+        def d = discount
+        if (!d) {
+            return p // No discount
+        }
+        if (d < 1) {
+            return p - (d * p) // Percent discount
+        }
+        return p - d // Amount discount
     }
 
     transient Float getTotalPriceVAT() {
         def p = getTotalPrice()
         def v = vat ?: 0
         return p + (p * v)
+    }
+
+    /**
+     * Return the discount amount, the amount to subtract from total price when applying discount.
+     * If discount is less than 1 the discount is represented as percent (% discount),
+     * otherwise it's the actual total discount amount for this order item.
+     * @return the amount to subtract from totalPrice when applying discount
+     */
+    transient Float getDiscountPrice() {
+        def p = (quantity ?: 0) * (price ?: 0)
+        def d = discount ?: 0
+        return d < 1 ? (p * d) : d
     }
 
     String toString() {

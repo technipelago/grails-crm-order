@@ -29,18 +29,29 @@ import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
  */
 class CrmOrderService {
 
+    def grailsApplication
     def crmTagService
+    def sequenceGeneratorService
 
     @Listener(namespace = "crmOrder", topic = "enableFeature")
     def enableFeature(event) {
         // event = [feature: feature, tenant: tenant, role:role, expires:expires]
-        TenantUtils.withTenant(event.tenant) {
+        def tenant = event.tenant
+        TenantUtils.withTenant(tenant) {
+            // Initialize a number sequence for CrmOrder
+            def config = grailsApplication.config.crm.order.sequence
+            def start = config.start ?: 1
+            def format = config.format ?: "%s"
+            sequenceGeneratorService.initSequence(CrmOrder, null, tenant, start, format)
+
+            // Create generic tag for CrmOrder
             crmTagService.createTag(name: CrmOrder.name, multiple: true)
+
+            // Create default lookup codes.
             createOrderType(name: "Order", param: "order", true)
             createOrderStatus(name: "Order", param: 'order', true)
             createDeliveryType(name: "Standard", param: 'default', true)
 
-            createOrderStatus(orderIndex: 10, name: "Order", param: 'order', true)
             log.debug "crmOrderService finished setup in tenant ${event.tenant}"
         }
     }
@@ -186,16 +197,26 @@ class CrmOrderService {
 
     CrmOrder createOrder(Map params, boolean save = false) {
         def tenant = TenantUtils.tenant
-        def m = new CrmOrder()
-        def args = [m, params]
-        /*if (params.invoice) {
-            m.invoice = new CrmEmbeddedAddress()
+        def m = new CrmOrder(invoice: new CrmEmbeddedAddress(), delivery: new CrmEmbeddedAddress())
+
+        // Bind invoice address
+        def args = [m.invoice, params, 'invoice']
+        new BindDynamicMethod().invoke(m.invoice, 'bind', args.toArray())
+
+        // Bind delivery date
+        args = [m.delivery, params, 'delivery']
+        new BindDynamicMethod().invoke(m.delivery, 'bind', args.toArray())
+
+        // Bind all other properties
+        def date = params.orderDate
+        if (date?.class == Date.class) {
+            params.orderDate = new java.sql.Date(date.clearTime().time)
         }
-        if (params.delivery) {
-            m.delivery = new CrmEmbeddedAddress()
-        }*/
+        args = [m, params, [include: CrmOrder.BIND_WHITELIST]]
         new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+
         m.tenantId = tenant
+
         if (save) {
             m.save()
         } else {
