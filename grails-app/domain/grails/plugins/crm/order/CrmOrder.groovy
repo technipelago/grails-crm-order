@@ -127,7 +127,7 @@ class CrmOrder {
         items sort: 'orderIndex', 'asc'
     }
 
-    static transients = ['customer', 'customerName', 'deliveryContact', 'totalAmountVAT']
+    static transients = ['customer', 'customerName', 'deliveryContact', 'totalAmountVAT', 'totalDiscount', 'totalDiscountVAT']
 
     static taggable = true
     static attachmentable = true
@@ -153,6 +153,14 @@ class CrmOrder {
         def p = totalAmount ?: 0
         def v = totalVat ?: 0
         return p + v
+    }
+
+    transient Float getTotalDiscount() {
+        items ? items.sum { it.getDiscountPrice() } : 0f
+    }
+
+    transient Float getTotalDiscountVAT() {
+        items ? items.sum { it.getDiscountPriceVAT() } : 0f
     }
 
     transient String getCustomerName() {

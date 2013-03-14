@@ -48,7 +48,7 @@ class CrmOrderItem {
         vat(nullable: false, min: 0f, max: 1f, scale: 2)
     }
 
-    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat', 'discountPrice']
+    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat', 'discountPrice', 'discountPriceVAT']
 
     transient Float getPriceVAT() {
         def p = price ?: 0
@@ -88,6 +88,12 @@ class CrmOrderItem {
         def p = (quantity ?: 0) * (price ?: 0)
         def d = discount ?: 0
         return d < 1 ? (p * d) : d
+    }
+
+    transient Float getDiscountPriceVAT() {
+        def p = getDiscountPrice()
+        def v = vat ?: 0
+        return p + (p * v)
     }
 
     String toString() {
