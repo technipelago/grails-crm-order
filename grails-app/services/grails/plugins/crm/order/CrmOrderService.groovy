@@ -144,15 +144,15 @@ class CrmOrderService {
             if (query.campaign) {
                 ilike('campaign', SearchUtils.wildcard(query.campaign))
             }
-            if (params.fromDate && params.toDate) {
-                def d1 = DateUtils.parseSqlDate(params.fromDate)
-                def d2 = DateUtils.parseSqlDate(params.toDate)
+            if (query.fromDate && query.toDate) {
+                def d1 = DateUtils.parseSqlDate(query.fromDate)
+                def d2 = DateUtils.parseSqlDate(query.toDate)
                 between('orderDate', d1, d2)
-            } else if (params.fromDate) {
-                def d1 = DateUtils.parseSqlDate(params.fromDate)
+            } else if (query.fromDate) {
+                def d1 = DateUtils.parseSqlDate(query.fromDate)
                 ge('orderDate', d1)
-            } else if (params.toDate) {
-                def d2 = DateUtils.parseSqlDate(params.toDate)
+            } else if (query.toDate) {
+                def d2 = DateUtils.parseSqlDate(query.toDate)
                 le('orderDate', d2)
             }
             if (query.type) {
