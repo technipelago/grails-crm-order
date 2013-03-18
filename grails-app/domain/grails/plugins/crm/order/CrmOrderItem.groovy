@@ -51,7 +51,32 @@ class CrmOrderItem {
     static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat', 'discountPrice', 'discountPriceVAT']
 
     transient Float getPriceVAT() {
-        def p = price ?: 0
+        def p = price
+        if (!p) {
+            return p
+        }
+        def v = vat ?: 0
+        return p + (p * v)
+    }
+
+    transient Float getDiscountPrice() {
+        def p = price
+        if (!p) {
+            return p
+        }
+        def d = discount
+        if (d) {
+            if (d < 1) {
+                p -= (p * d)
+            } else {
+                p -= d
+            }
+        }
+        return p
+    }
+
+    transient Float getDiscountPriceVAT() {
+        def p = getDiscountPrice()
         def v = vat ?: 0
         return p + (p * v)
     }
@@ -84,13 +109,13 @@ class CrmOrderItem {
      * otherwise it's the actual total discount amount for this order item.
      * @return the amount to subtract from totalPrice when applying discount
      */
-    transient Float getDiscountPrice() {
+    transient Float getDiscountValue() {
         def p = (quantity ?: 0) * (price ?: 0)
         def d = discount ?: 0
         return d < 1 ? (p * d) : d
     }
 
-    transient Float getDiscountPriceVAT() {
+    transient Float getDiscountValueVAT() {
         def p = getDiscountPrice()
         def v = vat ?: 0
         return p + (p * v)
