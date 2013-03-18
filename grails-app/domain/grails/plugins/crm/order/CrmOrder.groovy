@@ -164,11 +164,11 @@ class CrmOrder {
     }
 
     transient Float getTotalDiscount() {
-        items ? items.sum { it.getDiscountPrice() } : 0f
+        items ? items.sum { it.getDiscountValue() } : 0f
     }
 
     transient Float getTotalDiscountVAT() {
-        items ? items.sum { it.getDiscountPriceVAT() } : 0f
+        items ? items.sum { it.getDiscountValueVAT() } : 0f
     }
 
     transient String getCustomerName() {
@@ -209,14 +209,14 @@ class CrmOrder {
         }
     }
 
-    Pair<Float, Float> calculateAmount() {
+    protected Pair<Float, Float> calculateAmount() {
         Float sum = 0f
         Float vat = 0f
         for (item in items) {
             sum += item.totalPrice
             vat += item.totalVat
         }
-        return new Pair(sum, vat)
+        new Pair(sum, vat)
     }
 
     String toString() {

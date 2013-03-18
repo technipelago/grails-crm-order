@@ -53,7 +53,7 @@ class CrmOrderItem {
     transient Float getPriceVAT() {
         def p = price
         if (!p) {
-            return p
+            return 0f
         }
         def v = vat ?: 0
         return p + (p * v)
@@ -62,7 +62,7 @@ class CrmOrderItem {
     transient Float getDiscountPrice() {
         def p = price
         if (!p) {
-            return p
+            return 0f
         }
         def d = discount
         if (d) {
@@ -116,7 +116,7 @@ class CrmOrderItem {
     }
 
     transient Float getDiscountValueVAT() {
-        def p = getDiscountPrice()
+        def p = getDiscountValue()
         def v = vat ?: 0
         return p + (p * v)
     }
