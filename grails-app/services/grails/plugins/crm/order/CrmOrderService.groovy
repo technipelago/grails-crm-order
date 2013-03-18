@@ -30,6 +30,7 @@ import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
 class CrmOrderService {
 
     def grailsApplication
+    def crmCoreService
     def crmTagService
     def sequenceGeneratorService
 
@@ -180,6 +181,9 @@ class CrmOrderService {
                         ilike('name', SearchUtils.wildcard(query.delivery))
                     }
                 }
+            }
+            if(query.reference) {
+                eq('customerRef', crmCoreService.getReferenceIdentifier(query.reference))
             }
         }
     }

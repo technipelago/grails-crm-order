@@ -46,7 +46,7 @@ class CrmOrder {
             'invoice', 'delivery', 'totalAmount', 'totalVat'
     ]
 
-    def crmCoreService
+    private def _crmCoreService
 
     String number
     java.sql.Date orderDate
@@ -133,20 +133,28 @@ class CrmOrder {
     static attachmentable = true
     static dynamicProperties = true
 
+    // Lazy injection of service.
+    private def getCrmCoreService() {
+        if (_crmCoreService == null) {
+            _crmCoreService = this.getDomainClass().getGrailsApplication().getMainContext().getBean('crmCoreService')
+        }
+        _crmCoreService
+    }
+
     transient Object getCustomer() {
-        crmCoreService.getReference(customerRef)
+        getCrmCoreService().getReference(customerRef)
     }
 
     transient void setCustomer(Object arg) {
-        customerRef = crmCoreService.getReferenceIdentifier(arg)
+        customerRef = getCrmCoreService().getReferenceIdentifier(arg)
     }
 
     transient Object getDeliveryContact() {
-        crmCoreService.getReference(deliveryRef)
+        getCrmCoreService().getReference(deliveryRef)
     }
 
     transient void setDeliveryContact(Object arg) {
-        deliveryRef = crmCoreService.getReferenceIdentifier(arg)
+        deliveryRef = getCrmCoreService().getReferenceIdentifier(arg)
     }
 
     transient Float getTotalAmountVAT() {
