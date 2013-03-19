@@ -19,6 +19,7 @@ package grails.plugins.crm.order
 import grails.events.Listener
 import grails.plugins.crm.core.CrmEmbeddedAddress
 import grails.plugins.crm.core.DateUtils
+import grails.plugins.crm.core.PagedResultList
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import org.apache.commons.lang.StringUtils
@@ -88,7 +89,7 @@ class CrmOrderService {
      * @return List or CrmOrder domain instances
      */
     def list(Map params = [:]) {
-        list([:], params)
+        executeCriteria('list', [:], params)
     }
 
     /**
@@ -99,28 +100,48 @@ class CrmOrderService {
      * @return List or CrmOrder domain instances
      */
     def list(Map query, Map params) {
+        executeCriteria('list', query, params)
+    }
+
+    /**
+     * Count number of CrmOrder instances filtered by query.
+     *
+     * @param query filter parameters
+     * @return number of CrmOrder
+     */
+    def count(Map query = [:]) {
+        executeCriteria('count', query, null)
+    }
+
+    private Object executeCriteria(String criteriaMethod, Map query, Map params) {
         def tagged
 
         if (query.tags) {
             tagged = crmTagService.findAllByTag(CrmOrder, query.tags).collect { it.id }
-            if (!tagged) {
-                tagged = [0L] // Force no search result.
+            if(! tagged) {
+                // No need to continue with the query if tags don't match.
+                return new PagedResultList([])
             }
         }
 
-        CrmOrder.createCriteria().list(params) {
+        final Closure criteria = {
             eq('tenantId', TenantUtils.tenant)
             if (tagged) {
                 inList('id', tagged)
             }
             if (query.number) {
-                ilike('number', SearchUtils.wildcard(query.number))
+                eq('number', query.number)
             }
             if (query.customer) {
-                or {
-                    eq('customerFirstName', query.customer)
-                    eq('customerLastName', query.customer)
-                    eq('customerCompany', query.customer)
+                if(crmCoreService.isDomainClass(query.customer)
+                || crmCoreService.isDomainReference(query.customer)) {
+                    eq('customerRef', crmCoreService.getReferenceIdentifier(query.customer))
+                } else {
+                    or {
+                        ilike('customerFirstName', SearchUtils.wildcard(query.customer))
+                        ilike('customerLastName', SearchUtils.wildcard(query.customer))
+                        ilike('customerCompany', SearchUtils.wildcard(query.customer))
+                    }
                 }
             }
             if (query.address) {
@@ -182,9 +203,15 @@ class CrmOrderService {
                     }
                 }
             }
-            if(query.reference) {
-                eq('customerRef', crmCoreService.getReferenceIdentifier(query.reference))
-            }
+        }
+
+        switch(criteriaMethod) {
+            case 'count':
+                return CrmOrder.createCriteria().count(criteria)
+            case 'get':
+                return CrmOrder.createCriteria().get(params, criteria)
+            default:
+                return CrmOrder.createCriteria().list(params, criteria)
         }
     }
 

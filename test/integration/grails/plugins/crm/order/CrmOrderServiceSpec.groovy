@@ -1,5 +1,7 @@
 package grails.plugins.crm.order
 
+import spock.lang.Shared
+
 /**
  * Tests for CrmOrderService.
  */
@@ -7,13 +9,34 @@ class CrmOrderServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
     def crmOrderService
 
-    def "create order with discount"() {
-        given:
-        def t = crmOrderService.createOrderType(name: "Web Order", true)
-        def s = crmOrderService.createOrderStatus(name: "Order", true)
+    @Shared type
+    @Shared status
 
+    def setup() {
+        type = crmOrderService.createOrderType(name: "Web Order", true)
+        status = crmOrderService.createOrderStatus(name: "Order", true)
+    }
+
+    def "test list and count"() {
         when:
-        def o = crmOrderService.createOrder(orderDate: new Date(), customer: "ACME Inc.", orderType: t, orderStatus: s,
+        crmOrderService.createOrder(orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                'invoice.addressee': 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
+                'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown',
+                true)
+        5.times {
+            crmOrderService.createOrder(orderDate: new Date(), customerCompany: "Dummy Inc.", orderType: type, orderStatus: status,
+                    'invoice.addressee': 'Dummy Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Dummytown',
+                    'delivery.addressee': 'Dummy Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Dummytown',
+                    true)
+        }
+        then:
+        crmOrderService.count() == 6
+        crmOrderService.count([customer:"Dummy"]) == 5
+    }
+
+    def "create order with discount"() {
+        when:
+        def o = crmOrderService.createOrder(orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
                 'invoice.addressee': 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
                 'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown',
                 campaign: "test",
