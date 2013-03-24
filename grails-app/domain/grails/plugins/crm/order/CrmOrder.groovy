@@ -39,6 +39,7 @@ class CrmOrder {
 
     public static final int EVENT_RESET = 0
     public static final int EVENT_CHANGED = 1
+    public static final int EVENT_PUBLISHED = 2
 
     public static final List<String> BIND_WHITELIST = ['number', 'orderDate', 'deliveryDate', 'deliveryRef',
             'reference1', 'reference2', 'reference3', 'reference4', 'campaign', 'orderType', 'orderStatus', 'deliveryType',
@@ -127,7 +128,8 @@ class CrmOrder {
         items sort: 'orderIndex', 'asc'
     }
 
-    static transients = ['customer', 'customerName', 'deliveryContact', 'totalAmountVAT', 'totalDiscount', 'totalDiscountVAT']
+    static transients = ['customer', 'customerName', 'deliveryContact', 'totalAmountVAT', 'totalDiscount', 'totalDiscountVAT',
+            'dao', 'syncPending', 'syncPublished']
 
     static taggable = true
     static attachmentable = true
@@ -221,5 +223,49 @@ class CrmOrder {
 
     String toString() {
         number.toString()
+    }
+
+    transient Map<String, Object> getDao() {
+        def map = BIND_WHITELIST.inject([:]) { m, i ->
+            if (i != 'invoice' && i != 'delivery') {
+                def v = this."$i"
+                if (v != null) {
+                    m[i] = v
+                }
+            }
+            m
+        }
+        map.id = id
+        map.customer = getCustomer()?.getDao()
+        map.customerName = getCustomerName()
+        if(invoice != null) {
+            map.invoice = invoice.getDao()
+        }
+        if (delivery != null) {
+            map.delivery = delivery.getDao()
+        }
+        map.totalAmountVAT = getTotalAmountVAT()
+        map.items = items?.collect { it.getDao() }
+        return map
+    }
+
+    transient boolean isSyncPending() {
+        event == EVENT_CHANGED
+    }
+
+    void setSyncPending() {
+        event = EVENT_CHANGED
+    }
+
+    transient boolean isSyncPublished() {
+        event == EVENT_PUBLISHED
+    }
+
+    void setSyncPublished() {
+        event = EVENT_PUBLISHED
+    }
+
+    void setNoSync() {
+        event = EVENT_RESET
     }
 }

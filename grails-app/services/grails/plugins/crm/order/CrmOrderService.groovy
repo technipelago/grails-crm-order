@@ -118,7 +118,7 @@ class CrmOrderService {
 
         if (query.tags) {
             tagged = crmTagService.findAllByTag(CrmOrder, query.tags).collect { it.id }
-            if(! tagged) {
+            if (!tagged) {
                 // No need to continue with the query if tags don't match.
                 return new PagedResultList([])
             }
@@ -133,8 +133,8 @@ class CrmOrderService {
                 eq('number', query.number)
             }
             if (query.customer) {
-                if(crmCoreService.isDomainClass(query.customer)
-                || crmCoreService.isDomainReference(query.customer)) {
+                if (crmCoreService.isDomainClass(query.customer)
+                        || crmCoreService.isDomainReference(query.customer)) {
                     eq('customerRef', crmCoreService.getReferenceIdentifier(query.customer))
                 } else {
                     or {
@@ -205,7 +205,7 @@ class CrmOrderService {
             }
         }
 
-        switch(criteriaMethod) {
+        switch (criteriaMethod) {
             case 'count':
                 return CrmOrder.createCriteria().count(criteria)
             case 'get':
@@ -215,8 +215,11 @@ class CrmOrderService {
         }
     }
 
-    CrmOrder getOrder(Long id) {
-        CrmOrder.get(id)
+    CrmOrder getOrder(Long id, Long tenant = null) {
+        if (tenant == null) {
+            tenant = TenantUtils.tenant
+        }
+        CrmOrder.findByIdAndTenantId(id, tenant)
     }
 
     CrmOrder findByNumber(String number, Long tenant = null) {

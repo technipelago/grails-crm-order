@@ -48,7 +48,7 @@ class CrmOrderItem {
         vat(nullable: false, min: 0f, max: 1f, scale: 2)
     }
 
-    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat', 'discountPrice', 'discountPriceVAT']
+    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat', 'discountPrice', 'discountPriceVAT', 'dao']
 
     transient Float getPriceVAT() {
         def p = price
@@ -123,6 +123,12 @@ class CrmOrderItem {
 
     String toString() {
         "$quantity $unit $productId"
+    }
+
+    transient Map<String, Object> getDao() {
+        [orderIndex: orderIndex, productId: productId, productName: productName, comment: comment,
+                quantity: quantity, unit: unit, vat: vat,
+                price: price, priceVAT: priceVAT, totalPriceVAT: totalPriceVAT, discount: discount]
     }
 }
 
