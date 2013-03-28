@@ -128,7 +128,9 @@ class CrmOrderItem {
     transient Map<String, Object> getDao() {
         [orderIndex: orderIndex, productId: productId, productName: productName, comment: comment,
                 quantity: quantity, unit: unit, vat: vat,
-                price: price, priceVAT: priceVAT, totalPriceVAT: totalPriceVAT, discount: discount]
+                price: price, priceVAT: getPriceVAT(),
+                discount: discount, discountPrice: getDiscountPrice(), discountPriceVAT: getDiscountPriceVAT(),
+                totalPrice: getTotalPrice(), totalPriceVAT: getTotalPriceVAT()]
     }
 }
 
