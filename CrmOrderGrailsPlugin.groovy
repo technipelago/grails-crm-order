@@ -35,8 +35,8 @@ The companion plugin crm-order-ui provides user the interface for order manageme
     def documentation = "http://grails.org/plugin/crm-order"
     def license = "APACHE"
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
-    def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-order/issues"]
-    def scm = [url: "https://github.com/goeh/grails-crm-order"]
+    def issueManagement = [system: "github", url: "https://github.com/technipelago/grails-crm-order/issues"]
+    def scm = [url: "https://github.com/technipelago/grails-crm-order"]
 
     def features = {
         crmOrder {
