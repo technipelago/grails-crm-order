@@ -76,14 +76,14 @@ class CrmOrder {
     CrmEmbeddedAddress invoice
     CrmEmbeddedAddress delivery
 
-    Float totalAmount = 0f
-    Float totalVat = 0f
+    Double totalAmount = 0
+    Double totalVat = 0
 
     int paymentStatus = PAYMENT_STATUS_UNKNOWN
     Date paymentDate
     String paymentType
     String paymentId
-    Float payedAmount = 0f
+    Double payedAmount = 0
 
     int event = EVENT_RESET
 
@@ -111,15 +111,15 @@ class CrmOrder {
         customerCompany(maxSize: 80, nullable: true)
         customerTel(maxSize: 20, nullable: true)
         customerEmail(maxSize: 80, nullable: true, email: true)
-        totalAmount(min: -999999f, max: 999999f, scale: 2)
-        totalVat(min: -999999f, max: 999999f, scale: 2)
+        totalAmount(min: -999999d, max: 999999d, scale: 2)
+        totalVat(min: -999999d, max: 999999d, scale: 2)
         invoice(nullable: true)
         delivery(nullable: true)
         paymentStatus(min: PAYMENT_STATUS_UNKNOWN, max: PAYMENT_STATUS_FULL)
         paymentDate(nullable: true)
         paymentType(maxSize: 40, nullable: true)
         paymentId(maxSize: 80, nullable: true)
-        payedAmount(min: -999999f, max: 999999f, scale: 2)
+        payedAmount(min: -999999d, max: 999999d, scale: 2)
     }
 
     static mapping = {
@@ -159,18 +159,18 @@ class CrmOrder {
         deliveryRef = getCrmCoreService().getReferenceIdentifier(arg)
     }
 
-    transient Float getTotalAmountVAT() {
+    transient Double getTotalAmountVAT() {
         def p = totalAmount ?: 0
         def v = totalVat ?: 0
         return p + v
     }
 
-    transient Float getTotalDiscount() {
-        items ? items.sum { it.getDiscountValue() } : 0f
+    transient Double getTotalDiscount() {
+        items ? items.sum { it.getDiscountValue() } : 0
     }
 
-    transient Float getTotalDiscountVAT() {
-        items ? items.sum { it.getDiscountValueVAT() } : 0f
+    transient Double getTotalDiscountVAT() {
+        items ? items.sum { it.getDiscountValueVAT() } : 0
     }
 
     transient String getCustomerName() {
@@ -211,9 +211,9 @@ class CrmOrder {
         }
     }
 
-    protected Pair<Float, Float> calculateAmount() {
-        Float sum = 0f
-        Float vat = 0f
+    protected Pair<Double, Double> calculateAmount() {
+        Double sum = 0
+        Double vat = 0
         for (item in items) {
             sum += item.totalPrice
             vat += item.totalVat
