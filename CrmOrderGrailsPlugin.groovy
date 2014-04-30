@@ -28,8 +28,8 @@ class CrmOrderGrailsPlugin {
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
     def description = '''\
-Simple order management for Grails CRM.
-This plugin provides the "headless" part of Grails CRM order management (i.e domains and services).
+Simple order management for GR8 CRM.
+This plugin provides the "headless" part of GR8 CRM order management (i.e domains and services).
 The companion plugin crm-order-ui provides user the interface for order management.
 '''
     def documentation = "http://grails.org/plugin/crm-order"
