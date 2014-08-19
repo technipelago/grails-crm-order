@@ -1,19 +1,13 @@
 grails.project.class.dir = "target/classes"
 grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
-grails.project.work.dir = "target"
 grails.project.target.level = 1.6
-
-grails.project.repos.default = "crm"
 
 grails.project.dependency.resolution = {
     inherits("global") {}
     log "warn"
     legacyResolve false
     repositories {
-        grailsHome()
-        mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
-        mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
         grailsCentral()
         mavenCentral()
     }
@@ -33,27 +27,12 @@ grails.project.dependency.resolution = {
             export = false
             exclude "spock-grails-support"
         }
-        test(":codenarc:0.18.1") { export = false }
+        test(":codenarc:0.21") { export = false }
 
-        compile "grails.crm:crm-core:latest.integration"
-        runtime "grails.crm:crm-tags:latest.integration"
+        compile ":crm-core:2.0.2"
+        compile ":crm-tags:2.0.0"
 
-        compile ":sequence-generator:latest.integration"
-        compile ":selection:latest.integration"
+        compile ":sequence-generator:1.0"
+        compile ":selection:0.9.7"
     }
-}
-
-codenarc {
-    reports = {
-        CrmXmlReport('xml') {
-            outputFile = 'CodeNarcReport.xml'
-            title = 'Grails CRM CodeNarc Report'
-        }
-        CrmHtmlReport('html') {
-            outputFile = 'target/test-reports/CodeNarcReport.html'
-            title = 'Grails CRM CodeNarc Report'
-        }
-    }
-    processTestUnit = false
-    processTestIntegration = false
 }

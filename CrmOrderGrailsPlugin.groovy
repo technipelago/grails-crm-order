@@ -15,8 +15,8 @@
  */
 
 class CrmOrderGrailsPlugin {
-    def groupId = "grails.crm"
-    def version = "1.2.0"
+    def groupId = ""
+    def version = "2.0.0"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def pluginExcludes = [
@@ -24,7 +24,7 @@ class CrmOrderGrailsPlugin {
             "grails-app/services/grails/plugins/crm/order/TestSecurityService.groovy",
             "grails-app/views/error.gsp"
     ]
-    def title = "Grails CRM Order Management Plugin"
+    def title = "GR8 CRM Order Management Services"
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
     def description = '''\
@@ -32,7 +32,7 @@ Simple order management for GR8 CRM.
 This plugin provides the "headless" part of GR8 CRM order management (i.e domains and services).
 The companion plugin crm-order-ui provides user the interface for order management.
 '''
-    def documentation = "http://grails.org/plugin/crm-order"
+    def documentation = "http://gr8crm.github.io/plugins/crm-order/"
     def license = "APACHE"
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
     def issueManagement = [system: "github", url: "https://github.com/technipelago/grails-crm-order/issues"]
