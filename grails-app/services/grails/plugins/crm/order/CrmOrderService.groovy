@@ -22,6 +22,7 @@ import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.PagedResultList
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
+import grails.plugins.selection.Selectable
 import org.apache.commons.lang.StringUtils
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
 
@@ -88,6 +89,7 @@ class CrmOrderService {
      * @param params pagination parameters
      * @return List or CrmOrder domain instances
      */
+    @Selectable
     def list(Map params = [:]) {
         executeCriteria('list', [:], params)
     }
@@ -99,6 +101,7 @@ class CrmOrderService {
      * @param params pagination parameters
      * @return List or CrmOrder domain instances
      */
+    @Selectable
     def list(Map query, Map params) {
         executeCriteria('list', query, params)
     }
@@ -301,17 +304,16 @@ class CrmOrderService {
         return m
     }
 
-    List<CrmOrderType> listOrderType(Boolean enabled = null, CrmOrderType mandatory = null, Map params = [:]) {
-        def result = CrmOrderType.createCriteria().list(params) {
+    List<CrmOrderType> listOrderType(String name, Map params = [:]) {
+        CrmOrderType.createCriteria().list(params) {
             eq('tenantId', TenantUtils.tenant)
-            if (enabled != null) {
-                eq('enabled', enabled)
+            if (name) {
+                or {
+                    ilike('name', SearchUtils.wildcard(name))
+                    eq('param', name)
+                }
             }
         }
-        if (mandatory && !result.contains(mandatory)) {
-            result << mandatory
-        }
-        result
     }
 
     CrmOrderStatus getOrderStatus(String param) {
@@ -342,17 +344,16 @@ class CrmOrderService {
         return m
     }
 
-    List<CrmOrderStatus> listOrderStatus(Boolean enabled = null, CrmOrderStatus mandatory = null, Map params = [:]) {
-        def result = CrmOrderStatus.createCriteria().list(params) {
+    List<CrmOrderStatus> listOrderStatus(String name, Map params = [:]) {
+        CrmOrderStatus.createCriteria().list(params) {
             eq('tenantId', TenantUtils.tenant)
-            if (enabled != null) {
-                eq('enabled', enabled)
+            if (name) {
+                or {
+                    ilike('name', SearchUtils.wildcard(name))
+                    eq('param', name)
+                }
             }
         }
-        if (mandatory && !result.contains(mandatory)) {
-            result << mandatory
-        }
-        result
     }
 
     CrmDeliveryType getDeliveryType(String param) {
@@ -383,16 +384,15 @@ class CrmOrderService {
         return m
     }
 
-    List<CrmDeliveryType> listDeliveryType(Boolean enabled = null, CrmDeliveryType mandatory = null, Map params = [:]) {
-        def result = CrmDeliveryType.createCriteria().list(params) {
+    List<CrmDeliveryType> listDeliveryType(String name, Map params = [:]) {
+        CrmDeliveryType.createCriteria().list(params) {
             eq('tenantId', TenantUtils.tenant)
-            if (enabled != null) {
-                eq('enabled', enabled)
+            if (name) {
+                or {
+                    ilike('name', SearchUtils.wildcard(name))
+                    eq('param', name)
+                }
             }
         }
-        if (mandatory && !result.contains(mandatory)) {
-            result << mandatory
-        }
-        result
     }
 }
