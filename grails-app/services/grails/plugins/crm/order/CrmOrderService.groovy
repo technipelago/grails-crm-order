@@ -235,6 +235,138 @@ class CrmOrderService {
         CrmOrder.findByNumberAndTenantId(number, tenant)
     }
 
+    CrmOrder save(CrmOrder crmOrder, Map params) {
+        def tenant = TenantUtils.tenant
+        if (crmOrder.tenantId) {
+            if (crmOrder.tenantId != tenant) {
+                throw new IllegalStateException("The current tenant is [$tenant] and the specified domain instance belongs to another tenant [${crmOrder.tenantId}]")
+            }
+        } else {
+            crmOrder.tenantId = tenant
+        }
+        def currentUser = crmSecurityService.getUserInfo()
+        def oldStatus = crmOrder.orderStatus
+
+        try {
+            bindDate(crmOrder, 'orderDate', params.remove('orderDate'), currentUser?.timezone)
+            bindDate(crmOrder, 'deliveryDate', params.remove('deliveryDate'), currentUser?.timezone)
+        } catch (CrmValidationException e) {
+            throw new CrmValidationException(e.message, crmOrder)
+        }
+
+        // Bind "normal" properties.
+        def args = [crmOrder, params, [include: CrmOrder.BIND_WHITELIST]]
+        new BindDynamicMethod().invoke(crmOrder, 'bind', args.toArray())
+
+        // Bind invoice address
+        if (!crmOrder.invoice) {
+            crmOrder.invoice = new CrmEmbeddedAddress()
+        }
+        args = [crmOrder.invoice, params, 'invoice']
+        new BindDynamicMethod().invoke(crmOrder.invoice, 'bind', args.toArray())
+
+        // Bind delivery address.
+        if (!crmOrder.delivery) {
+            crmOrder.delivery = new CrmEmbeddedAddress()
+        }
+        args = [crmOrder.delivery, params, 'delivery']
+        new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
+
+        if (!crmOrder.username) {
+            crmOrder.username = currentUser?.username
+        }
+
+        if (!crmOrder.orderStatus) {
+            crmOrder.orderStatus = CrmOrderStatus.withNewSession {
+                CrmOrderStatus.createCriteria().get() {
+                    eq('tenantId', tenant)
+                    order 'orderIndex', 'asc'
+                    maxResults 1
+                }
+            }
+        }
+        if (!crmOrder.orderType) {
+            crmOrder.orderType = CrmOrderType.withNewSession {
+                CrmOrderType.createCriteria().get() {
+                    eq('tenantId', tenant)
+                    order 'orderIndex', 'asc'
+                    maxResults 1
+                }
+            }
+        }
+        if (!crmOrder.deliveryType) {
+            crmOrder.deliveryType = CrmDeliveryType.withNewSession {
+                CrmDeliveryType.createCriteria().get() {
+                    eq('tenantId', tenant)
+                    order 'orderIndex', 'asc'
+                    maxResults 1
+                }
+            }
+        }
+
+        //if (!crmOrder.currency) {
+        //    crmOrder.currency = grailsApplication.config.crm.currency.default ?: "EUR"
+        //}
+
+        if (!crmOrder.orderDate) {
+            crmOrder.orderDate = new java.sql.Date(System.currentTimeMillis())
+        }
+
+        if (!crmOrder.invoice.addressee) {
+            crmOrder.invoice.addressee = crmOrder.customerName
+        }
+
+        if (grailsApplication.config.crm.order.delivery.address.copy == 'invoice') {
+            crmOrder.invoice.copyTo(crmOrder.delivery)
+            if (!crmOrder.delivery.addressee) {
+                crmOrder.delivery.addressee = crmOrder.invoice.addressee ?: crmOrder.customerName
+            }
+        }
+
+        // If the order is new or it's status has changed, set the EVENT_CHANGED flag.
+        if (grailsApplication.config.crm.order.changeEvent) {
+            def newStatus = crmOrder.orderStatus
+            if (crmOrder.id == null || oldStatus != newStatus) {
+                crmOrder.event = CrmOrder.EVENT_CHANGED
+            }
+        }
+
+        if (crmOrder.save()) {
+            return crmOrder
+        }
+
+        throw new CrmValidationException('crmOrder.validation.error', crmOrder)
+    }
+
+    private void bindDate(def target, String property, Object value, TimeZone timezone = null) {
+        if (value) {
+            def tenant = crmSecurityService.getCurrentTenant()
+            def locale = tenant?.localeInstance ?: Locale.getDefault()
+            try {
+                if (value instanceof Date) {
+                    target[property] = new java.sql.Date(value.time)
+                } else {
+                    target[property] = DateUtils.parseSqlDate(value.toString(), timezone)
+                }
+            } catch (Exception e) {
+                def entityName = messageSource.getMessage('crmOrder.label', null, 'Order', locale)
+                def propertyName = messageSource.getMessage('crmOrder.' + property + '.label', null, property, locale)
+                target.errors.rejectValue(property, 'default.invalid.date.message', [propertyName, entityName, value.toString(), e.message].toArray(), "Invalid date: {2}")
+                throw new CrmValidationException('crmOrder.invalid.date.message', target)
+            }
+        } else {
+            target[property] = null
+        }
+    }
+
+    /**
+     * Create a new CrmOrder instance.
+     *
+     * @deprecated use {@link #save(CrmOrder, Map)} instead
+     * @param params property values
+     * @param save true if the instance should be persisted immediately
+     * @return the created order instance
+     */
     CrmOrder createOrder(Map params, boolean save = false) {
         def tenant = TenantUtils.tenant
         def m = new CrmOrder(invoice: new CrmEmbeddedAddress(), delivery: new CrmEmbeddedAddress())
@@ -277,129 +409,6 @@ class CrmOrderService {
             }
         }
         return m
-    }
-
-    CrmOrder save(CrmOrder crmOrder, Map params) {
-        def tenant = TenantUtils.tenant
-        if (crmOrder.tenantId) {
-            if (crmOrder.tenantId != tenant) {
-                throw new IllegalStateException("The current tenant is [$tenant] and the specified domain instance belongs to another tenant [${crmOrder.tenantId}]")
-            }
-        } else {
-            crmOrder.tenantId = tenant
-        }
-        def currentUser = crmSecurityService.getUserInfo()
-        def oldStatus = crmOrder.orderStatus
-
-        try {
-            bindDate(crmOrder, 'orderDate', params.remove('orderDate'), currentUser?.timezone)
-            bindDate(crmOrder, 'deliveryDate', params.remove('deliveryDate'), currentUser?.timezone)
-        } catch (CrmValidationException e) {
-            throw new CrmValidationException(e.message, crmOrder)
-        }
-
-        // Bind "normal" properties.
-        def args = [crmOrder, params, [include: CrmOrder.BIND_WHITELIST]]
-        new BindDynamicMethod().invoke(crmOrder, 'bind', args.toArray())
-
-        // Bind invoice address
-        if(! crmOrder.invoice) {
-            crmOrder.invoice = new CrmEmbeddedAddress()
-        }
-        args = [crmOrder.invoice, params, 'invoice']
-        new BindDynamicMethod().invoke(crmOrder.invoice, 'bind', args.toArray())
-
-        // Bind delivery address.
-        if(! crmOrder.delivery) {
-            crmOrder.delivery = new CrmEmbeddedAddress()
-        }
-        args = [crmOrder.delivery, params, 'delivery']
-        new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
-
-        if (!crmOrder.username) {
-            crmOrder.username = currentUser?.username
-        }
-        if (!crmOrder.orderStatus) {
-            crmOrder.orderStatus = CrmOrderStatus.withNewSession {
-                CrmOrderStatus.createCriteria().get() {
-                    eq('tenantId', tenant)
-                    order 'orderIndex', 'asc'
-                    maxResults 1
-                }
-            }
-        }
-        if (!crmOrder.orderType) {
-            crmOrder.orderType = CrmOrderType.withNewSession {
-                CrmOrderType.createCriteria().get() {
-                    eq('tenantId', tenant)
-                    order 'orderIndex', 'asc'
-                    maxResults 1
-                }
-            }
-        }
-        if (!crmOrder.deliveryType) {
-            crmOrder.deliveryType = CrmDeliveryType.withNewSession {
-                CrmDeliveryType.createCriteria().get() {
-                    eq('tenantId', tenant)
-                    order 'orderIndex', 'asc'
-                    maxResults 1
-                }
-            }
-        }
-
-        //if (!crmOrder.currency) {
-        //    crmOrder.currency = grailsApplication.config.crm.currency.default ?: "EUR"
-        //}
-
-        if (!crmOrder.orderDate) {
-            crmOrder.orderDate = new java.sql.Date(System.currentTimeMillis())
-        }
-
-        if(! crmOrder.invoice.addressee) {
-            crmOrder.invoice.addressee = crmOrder.customerName
-        }
-
-        if(grailsApplication.config.crm.order.delivery.address.copy == 'invoice') {
-            crmOrder.invoice.copyTo(crmOrder.delivery)
-            if(! crmOrder.delivery.addressee) {
-                crmOrder.delivery.addressee = crmOrder.invoice.addressee ?: crmOrder.customerName
-            }
-        }
-
-        // If the order is new or it's status has changed, set the EVENT_CHANGED flag.
-        if (grailsApplication.config.crm.order.changeEvent) {
-            def newStatus = crmOrder.orderStatus
-            if (crmOrder.id == null || oldStatus != newStatus) {
-                crmOrder.event = CrmOrder.EVENT_CHANGED
-            }
-        }
-
-        if (crmOrder.save()) {
-            return crmOrder
-        }
-
-        throw new CrmValidationException('crmOrder.validation.error', crmOrder)
-    }
-
-    private void bindDate(def target, String property, Object value, TimeZone timezone = null) {
-        if (value) {
-            def tenant = crmSecurityService.getCurrentTenant()
-            def locale = tenant?.localeInstance ?: Locale.getDefault()
-            try {
-                if(value instanceof Date) {
-                    target[property] = new java.sql.Date(value.time)
-                } else {
-                    target[property] = DateUtils.parseSqlDate(value.toString(), timezone)
-                }
-            } catch (Exception e) {
-                def entityName = messageSource.getMessage('crmOrder.label', null, 'Order', locale)
-                def propertyName = messageSource.getMessage('crmOrder.' + property + '.label', null, property, locale)
-                target.errors.rejectValue(property, 'default.invalid.date.message', [propertyName, entityName, value.toString(), e.message].toArray(), "Invalid date: {2}")
-                throw new CrmValidationException('crmOrder.invalid.date.message', target)
-            }
-        } else {
-            target[property] = null
-        }
     }
 
     CrmOrderType getOrderType(String param) {
