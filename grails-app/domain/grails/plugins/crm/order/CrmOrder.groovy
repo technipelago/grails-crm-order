@@ -42,9 +42,9 @@ class CrmOrder {
     public static final int EVENT_PUBLISHED = 2
 
     public static final List<String> BIND_WHITELIST = ['number', 'orderDate', 'deliveryDate', 'deliveryRef',
-            'reference1', 'reference2', 'reference3', 'reference4', 'campaign', 'orderType', 'orderStatus', 'deliveryType',
+            'reference1', 'reference2', 'reference3', 'reference4', 'campaign', 'username', 'orderType', 'orderStatus', 'deliveryType',
             'customerNumber', 'customerRef', 'customerFirstName', 'customerLastName', 'customerCompany', 'customerTel', 'customerEmail',
-            'invoice', 'delivery', 'totalAmount', 'totalVat'
+            'invoice', 'delivery', 'totalAmount', 'totalVat', 'currency'
     ]
 
     private def _crmCoreService
@@ -59,6 +59,7 @@ class CrmOrder {
     String reference4
 
     String campaign
+    String username
 
     CrmOrderType orderType
     CrmOrderStatus orderStatus
@@ -75,6 +76,8 @@ class CrmOrder {
 
     CrmEmbeddedAddress invoice
     CrmEmbeddedAddress delivery
+
+    String currency
 
     Double totalAmount = 0
     Double totalVat = 0
@@ -100,6 +103,7 @@ class CrmOrder {
         reference3(maxSize: 80, nullable: true)
         reference4(maxSize: 80, nullable: true)
         campaign(maxSize: 40, nullable: true)
+        username(maxSize: 80, nullable: true)
         orderType()
         orderStatus()
         deliveryType(nullable: true)
@@ -111,6 +115,7 @@ class CrmOrder {
         customerCompany(maxSize: 80, nullable: true)
         customerTel(maxSize: 20, nullable: true)
         customerEmail(maxSize: 80, nullable: true, email: true)
+        currency(maxSize: 4, nullable: true)
         totalAmount(min: -999999d, max: 999999d, scale: 2)
         totalVat(min: -999999d, max: 999999d, scale: 2)
         invoice(nullable: true)
