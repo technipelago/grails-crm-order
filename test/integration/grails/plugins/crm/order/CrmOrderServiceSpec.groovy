@@ -9,8 +9,10 @@ class CrmOrderServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
     def crmOrderService
 
-    @Shared type
-    @Shared status
+    @Shared
+            type
+    @Shared
+            status
 
     def setup() {
         type = crmOrderService.createOrderType(name: "Web Order", true)
@@ -31,7 +33,52 @@ class CrmOrderServiceSpec extends grails.plugin.spock.IntegrationSpec {
         }
         then:
         crmOrderService.count() == 6
-        crmOrderService.count([customer:"Dummy"]) == 5
+        crmOrderService.count([customer: "Dummy"]) == 5
+    }
+
+    def "order address as keys"() {
+        when:
+        def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                'invoice.addressee': 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
+                'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown'])
+
+
+        then:
+        !o.hasErrors()
+        o.ident()
+        o.invoice.postalCode == '12345'
+        o.delivery.postalCode == '12355'
+    }
+
+    def "order address as Map"() {
+        when:
+        def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                invoice: [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown'],
+                delivery: [addressee: 'ACME Laboratories', postalCode: '12355', city: 'Groovytown']])
+
+        then:
+        !o.hasErrors()
+        o.ident()
+        o.invoice.postalCode == '12345'
+        o.delivery.postalCode == '12355'
+    }
+
+    def "order items as List of Maps"() {
+        when:
+        def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                invoice: [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown'],
+                items: [[orderIndex: 1, productId: "water", productName: "Fresh water", unit: "l", quantity: 10, price: 10, vat: 0.25],
+                        [orderIndex: 2, productId: "air", productName: "Fresh air", unit: "m3", quantity: 100, price: 1, vat: 0.25],
+                        [orderIndex: 3, productId: "food", productName: "Fresh food", unit: "kg", quantity: 2, price: 100, vat: 0.12]]
+        ])
+
+        then:
+        !o.hasErrors()
+        o.ident()
+        o.items.size() == 3
+        o.items.find{it.productId == "water"}
+        o.items.find{it.productId == "air"}
+        o.items.find{it.productId == "food"}
     }
 
     def "create order with discount"() {

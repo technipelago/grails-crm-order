@@ -271,20 +271,40 @@ class CrmOrderService {
         if (!crmOrder.invoice) {
             crmOrder.invoice = new CrmEmbeddedAddress()
         }
-        args = [crmOrder.invoice, params, 'invoice']
-        new BindDynamicMethod().invoke(crmOrder.invoice, 'bind', args.toArray())
+        if(params.invoice instanceof Map) {
+            args = [crmOrder.invoice, params.invoice, [include: ['addressee'] + CrmEmbeddedAddress.BIND_WHITELIST]]
+            new BindDynamicMethod().invoke(crmOrder.invoice, 'bind', args.toArray())
+        } else {
+            args = [crmOrder.invoice, params, 'invoice']
+            new BindDynamicMethod().invoke(crmOrder.invoice, 'bind', args.toArray())
+        }
 
         // Bind delivery address.
         if (!crmOrder.delivery) {
             crmOrder.delivery = new CrmEmbeddedAddress()
         }
-        args = [crmOrder.delivery, params, 'delivery']
-        new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
+        if(params.delivery instanceof Map) {
+            args = [crmOrder.delivery, params.delivery, [include: ['addressee'] + CrmEmbeddedAddress.BIND_WHITELIST]]
+            new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
+        } else {
+            args = [crmOrder.delivery, params, 'delivery']
+            new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
+        }
 
         // Bind items.
-        args = [crmOrder, params, 'items']
-        new BindDynamicMethod().invoke(crmOrder, 'bind', args.toArray())
-
+        if(params.items instanceof List) {
+            for(row in params.items) {
+                def item = new CrmOrderItem(order: crmOrder)
+                args = [item, row, [include: CrmOrderItem.BIND_WHITELIST]]
+                new BindDynamicMethod().invoke(item, 'bind', args.toArray())
+                if(!item.hasErrors()) {
+                    crmOrder.addToItems(item)
+                }
+            }
+        } else {
+            args = [crmOrder, params, 'items']
+            new BindDynamicMethod().invoke(crmOrder, 'bind', args.toArray())
+        }
         if (!crmOrder.username) {
             crmOrder.username = currentUser?.username
         }

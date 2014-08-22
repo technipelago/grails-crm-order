@@ -45,7 +45,7 @@ class CrmOrder {
             'reference1', 'reference2', 'reference3', 'reference4', 'campaign', 'username', 'orderType', 'orderStatus', 'deliveryType',
             'customerNumber', 'customerRef', 'customerFirstName', 'customerLastName', 'customerCompany', 'customerTel', 'customerEmail',
             'invoice', 'delivery', 'totalAmount', 'totalVat', 'currency'
-    ]
+    ].asImmutable()
 
     private def _crmCoreService
 

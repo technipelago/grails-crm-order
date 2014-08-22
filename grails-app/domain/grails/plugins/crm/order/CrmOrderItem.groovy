@@ -22,6 +22,10 @@ package grails.plugins.crm.order
  * @since 0.1
  */
 class CrmOrderItem {
+
+    public static final List<String> BIND_WHITELIST = ['orderIndex', 'productId', 'productName', 'comment',
+            'unit', 'quantity', 'backorder', 'price', 'vat', 'discount'].asImmutable()
+
     Integer orderIndex
     String productId
     String productName
