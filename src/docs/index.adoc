@@ -36,11 +36,106 @@ This plugin provide storage and services for managing orders in {gr8crm} applica
 
 Note that this plugin does not contain any user interface components. This plugin contains domain classes and services only.
 The plugin http://gr8crm.github.io/plugins/crm-order-ui/[crm-order-ui] provides a Twitter Bootstrap based user interface for managing orders.
-+crm-order-ui+ depends on +crm-order+ so you only need to include +crm-order-ui+
+`crm-order-ui` depends on `crm-order` so you only need to include `crm-order-ui`
 in your BuildConfig.groovy if you want end-user order management features.
 
 == Domain Model
 
+image::order-domain.png[Order Domain Model]
+
+=== CrmOrder
+
+An order have a order head with customer details and zero-or-many order lines that specify the products ordered.
+The order head is stored in `CrmOrder` and each order line is stored in a `CrmOrderItem` instance.
+The association `CrmOrder.items` references all order lines for an order.
+
+.CrmOrder
+[options="header",cols="25,25,50"]
+|===
+| Property          | Type               | Description
+| number            | String             | Order number
+| orderDate         | java.sql.Date      | Order date
+| deliveryDate      | java.sql.Date      | Delivery date (expected or actual)
+| orderType         | CrmOrderType       | Type of order
+| orderStatus       | CrmOrderStatus     | Current order status
+| deliveryType      | CrmDeliveryType    | How the products should be delivered to the customer (standard, express, etc.)
+| customerNumber    | String             | Customer number (if applicable)
+| customerFirstName | String             | Customer first name
+| customerLastName  | String             | Customer last name
+| customerCompany   | String             | Customer company name (if applicable)
+| customerTel       | String             | Customer telephone
+| customerEmail     | String             | Customer email
+| invoice           | CrmEmbeddedAddress | Invoice address
+| delivery          | CrmEmbeddedAddress | Delivery address
+| currency          | String             | Currency code
+| totalAmount       | Double             | Total order amount
+| totalVat          | Double             | Total VAT amount
+|===
+
+=== CrmOrderItem
+
+Each order line specifies product and price information.
+
+.CrmOrderItem
+[options="header",cols="20,20,60"]
+|===
+| Property          | Type            | Description
+| orderIndex        | Integer         | Line number
+| productId         | String          | A number that uniquely identifies the product
+| productName       | String          | Name of product
+| comment           | String          | Optional comments
+| quantity          | Double          | Quantity of products ordered
+| unit              | String          | Unit of quantity
+| price             | Double          | Price for one item excluding VAT
+| discount          | Double          | Discount (in percent of price if value < 1 and in real currency if value >= 1)
+| vat               | Double          | Value Added Tax (in percent)
+|===
+
+== CrmOrderService
+
+Like most other {gr8crm} plugins this plugin have a main service with methods for creating, searching and updating orders.
+
+=== Create order type
+
+`CrmOrderType createOrderType(Map params, boolean save = false)`
+
+Order type is mandatory on an order and different order types can be created with `createOrderType()`.
+
+=== Create order status
+
+`CrmOrderStatus createOrderStatus(Map params, boolean save = false)`
+
+Order status is mandatory on an order and different order statuses can be created with `createOrderStatus()`.
+
+=== Create delivery type
+
+`CrmDeliveryType createDeliveryType(Map params, boolean save = false)`
+
+Delivery type is mandatory on an order and different delivery types can be created with `createDeliveryType()`.
+
+=== Create a new order
+
+`CrmOrder saveOrder(CrmOrder order, Map params)`
+
+To create a new order you call the saveOrder method with a map of property values and either an existing `CrmOrder` instance
+or `null` to have the method create an instance for you.
+
+[source,groovy]
+.CreateWebOrder.groovy
+----
+def t = crmOrderService.createOrderType(name: "Web Order", true)
+def s = crmOrderService.createOrderStatus(name: "Order", true)
+def d = crmOrderService.createDeliveryType(name: "Air mail", true)
+
+def order = crmOrderService.saveOrder(null, [orderType: t, orderStatus: s, deliveryType: d,
+    customerFirstName: "Joe", customerLastName: "Average", customerCompany: "Company Inc.",
+    'invoice.address1': "Main Road 1234", 'invoice.postalCode': "12345", 'invoice.city': "Stockholm",
+    customerTel: "+4685551234", customerEmail: "joe.average@company.com", currency: "SEK",
+    'items.orderIndex': 1, 'items.productNumber': "iPhone4s", 'items.productName': "iPhone 4S 16 GB Black Unlocked",
+    'items.unit': "item", 'items.quantity': 1, 'items.price': 3068.8, 'items.vat': 0.25])
+
+println "Order #$order created with status ${order.status} for ${order.customer}, ${order.invoice}"
+----
 
 == Changes
 
