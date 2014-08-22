@@ -1,0 +1,43 @@
+= GR8 CRM - Order Management Services
+Göran Ehrsson <goran@technipelago.se>
+:source-highlighter: prettify
+:homepage: http://gr8crm.github.io
+:license: This plugin is licensed with http://www.apache.org/licenses/LICENSE-2.0.html[Apache License version 2.0]
+
+CRM = http://en.wikipedia.org/wiki/Customer_relationship_management[Customer Relationship Management]
+
+GR8 CRM is a set of http://www.grails.org/[Grails Web Application Framework]
+plugins that makes it easy to develop web application with CRM functionality.
+With CRM we mean features like:
+
+- Contact Management
+- Task/Todo Lists
+- Project Management
+
+
+== Order Management for GR8 CRM
+This plugin provides the "headless" part of GR8 CRM order management (i.e domains and services).
+The companion plugin *crm-order-ui* provides user interfaces for order management.
+
+=== Examples
+
+[source,groovy]
+.CreateWebOrder.groovy
+----
+def t = crmOrderService.createOrderType(name: "Web Order", true)
+def s = crmOrderService.createOrderStatus(name: "Order", true)
+def d = crmOrderService.createDeliveryType(name: "Air mail", true)
+
+def order = crmOrderService.saveOrder(null, [orderType: t, orderStatus: s, deliveryType: d,
+    customerFirstName: "Joe", customerLastName: "Average", customerCompany: "Company Inc.",
+    'invoice.address1': "Main Road 1234", 'invoice.postalCode': "12345", 'invoice.city': "Stockholm",
+    customerTel: "+4685551234", customerEmail: "joe.average@company.com", currency: "SEK",
+    'items.orderIndex': 1, 'items.productNumber': "iPhone4s", 'items.productName': "iPhone 4S 16 GB Black Unlocked",
+    'items.unit': "item", 'items.quantity': 1, 'items.price': 3068.8, 'items.vat': 0.25])
+
+println "Order #$order created with status ${order.status} for ${order.customer}, ${order.invoice}"
+----
+
+=== Documentation
+
+Complete documentation for this plugin can be found at http://gr8crm.github.io/plugins/crm-order/[gr8crm.github.io]
