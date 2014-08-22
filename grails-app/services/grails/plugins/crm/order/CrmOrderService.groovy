@@ -291,6 +291,18 @@ class CrmOrderService {
             new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
         }
 
+        if (!crmOrder.invoice.addressee) {
+            crmOrder.invoice.addressee = crmOrder.customerName
+        }
+
+        // If delivery address is empty, copy invoice address (if configured to do so).
+        if (crmOrder.delivery.empty && grailsApplication.config.crm.order.delivery.address.copy == 'invoice') {
+            crmOrder.invoice.copyTo(crmOrder.delivery)
+            if (!crmOrder.delivery.addressee) {
+                crmOrder.delivery.addressee = crmOrder.invoice.addressee ?: crmOrder.customerName
+            }
+        }
+
         // Bind items.
         if(params.items instanceof List) {
             for(row in params.items) {
@@ -343,18 +355,6 @@ class CrmOrderService {
 
         if (!crmOrder.orderDate) {
             crmOrder.orderDate = new java.sql.Date(System.currentTimeMillis())
-        }
-
-        if (!crmOrder.invoice.addressee) {
-            crmOrder.invoice.addressee = crmOrder.customerName
-        }
-
-        // If delivery address is empty, copy invoice address (if configured to do so).
-        if (crmOrder.delivery.empty && grailsApplication.config.crm.order.delivery.address.copy == 'invoice') {
-            crmOrder.invoice.copyTo(crmOrder.delivery)
-            if (!crmOrder.delivery.addressee) {
-                crmOrder.delivery.addressee = crmOrder.invoice.addressee ?: crmOrder.customerName
-            }
         }
 
         // If the order is new or it's status has changed, set the EVENT_CHANGED flag.

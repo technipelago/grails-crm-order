@@ -1,6 +1,7 @@
 package grails.plugins.crm.order
 
 import spock.lang.Shared
+import grails.plugins.crm.core.CrmValidationException
 
 /**
  * Tests for CrmOrderService.
@@ -76,9 +77,9 @@ class CrmOrderServiceSpec extends grails.plugin.spock.IntegrationSpec {
         !o.hasErrors()
         o.ident()
         o.items.size() == 3
-        o.items.find{it.productId == "water"}
-        o.items.find{it.productId == "air"}
-        o.items.find{it.productId == "food"}
+        o.items.find { it.productId == "water" }
+        o.items.find { it.productId == "air" }
+        o.items.find { it.productId == "food" }
     }
 
     def "create order with discount"() {
@@ -107,5 +108,22 @@ class CrmOrderServiceSpec extends grails.plugin.spock.IntegrationSpec {
         o.totalAmount == 350
         o.totalVat == 61.5
         o.totalAmountVAT == 411.50
+    }
+
+    def "validation failure"() {
+        given:
+        def type = crmOrderService.createOrderType(name: "Test", true)
+        def status = crmOrderService.createOrderStatus(name: "Order", true)
+
+        when:
+        crmOrderService.saveOrder(null, [orderType: type, orderStatus: status,
+                customerFirstName: "Joe", customerLastName: "Average", customerCompany: "Company Inc.",
+                invoice: [address1: "Main Road 1234", postalCode: "12345", city: "Smallville"],
+                customerTel: "+4685551234", customerEmail: "joe.average@company.com", currency: "SEK",
+                items: [[orderIndex: 1, /*productId: "iPhone4s",*/ productName: "iPhone 4S 16 GB Black Unlocked",
+                        unit: "item", quantity: 1, price: 3068.8, vat: 0.25]]])
+        then: "productId is (intentionally) missing"
+        def exception = thrown(CrmValidationException)
+        exception.message == "crmOrder.validation.error"
     }
 }
