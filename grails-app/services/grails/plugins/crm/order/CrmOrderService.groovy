@@ -235,8 +235,11 @@ class CrmOrderService {
         CrmOrder.findByNumberAndTenantId(number, tenant)
     }
 
-    CrmOrder save(CrmOrder crmOrder, Map params) {
+    private CrmOrder useOrderInstance(CrmOrder crmOrder = null) {
         def tenant = TenantUtils.tenant
+        if (crmOrder == null) {
+            crmOrder = new CrmOrder()
+        }
         if (crmOrder.tenantId) {
             if (crmOrder.tenantId != tenant) {
                 throw new IllegalStateException("The current tenant is [$tenant] and the specified domain instance belongs to another tenant [${crmOrder.tenantId}]")
@@ -244,6 +247,12 @@ class CrmOrderService {
         } else {
             crmOrder.tenantId = tenant
         }
+        crmOrder
+    }
+
+    CrmOrder save(CrmOrder crmOrder, Map params) {
+        crmOrder = useOrderInstance(crmOrder)
+        def tenant = TenantUtils.tenant
         def currentUser = crmSecurityService.getUserInfo()
         def oldStatus = crmOrder.orderStatus
 
@@ -271,6 +280,10 @@ class CrmOrderService {
         }
         args = [crmOrder.delivery, params, 'delivery']
         new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
+
+        // Bind items.
+        args = [crmOrder, params, 'items']
+        new BindDynamicMethod().invoke(crmOrder, 'bind', args.toArray())
 
         if (!crmOrder.username) {
             crmOrder.username = currentUser?.username
@@ -316,7 +329,8 @@ class CrmOrderService {
             crmOrder.invoice.addressee = crmOrder.customerName
         }
 
-        if (grailsApplication.config.crm.order.delivery.address.copy == 'invoice') {
+        // If delivery address is empty, copy invoice address (if configured to do so).
+        if (crmOrder.delivery.empty && grailsApplication.config.crm.order.delivery.address.copy == 'invoice') {
             crmOrder.invoice.copyTo(crmOrder.delivery)
             if (!crmOrder.delivery.addressee) {
                 crmOrder.delivery.addressee = crmOrder.invoice.addressee ?: crmOrder.customerName
@@ -333,6 +347,9 @@ class CrmOrderService {
 
         if (crmOrder.save()) {
             return crmOrder
+        } else {
+            // Eager fetch associations to avoid LazyInitializationException
+            crmOrder.items?.size()
         }
 
         throw new CrmValidationException('crmOrder.validation.error', crmOrder)
