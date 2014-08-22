@@ -36,7 +36,7 @@ class CrmOrderServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
     def "create order with discount"() {
         when:
-        def o = crmOrderService.save(new CrmOrder(), [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+        def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
                 'invoice.addressee': 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
                 'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown',
                 campaign: "test"])

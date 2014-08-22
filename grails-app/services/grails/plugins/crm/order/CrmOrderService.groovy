@@ -250,7 +250,7 @@ class CrmOrderService {
         crmOrder
     }
 
-    CrmOrder save(CrmOrder crmOrder, Map params) {
+    CrmOrder saveOrder(CrmOrder crmOrder, Map params) {
         crmOrder = useOrderInstance(crmOrder)
         def tenant = TenantUtils.tenant
         def currentUser = crmSecurityService.getUserInfo()
