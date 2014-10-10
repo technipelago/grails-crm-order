@@ -132,7 +132,9 @@ class CrmOrderService {
 
         final Closure criteria = {
             eq('tenantId', TenantUtils.tenant)
-            if (tagged) {
+            if (query.id) {
+                eq('id', Long.valueOf(query.id))
+            } else if(tagged) {
                 inList('id', tagged)
             }
             if (query.number) {
