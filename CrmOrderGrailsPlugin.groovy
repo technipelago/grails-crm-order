@@ -30,7 +30,7 @@ class CrmOrderGrailsPlugin {
     def description = '''\
 Simple order management for GR8 CRM.
 This plugin provides the "headless" part of GR8 CRM order management (i.e domains and services).
-The companion plugin crm-order-ui provides user the interface for order management.
+The companion plugin crm-order-ui provides the user interface for order management.
 '''
     def documentation = "http://gr8crm.github.io/plugins/crm-order/"
     def license = "APACHE"
