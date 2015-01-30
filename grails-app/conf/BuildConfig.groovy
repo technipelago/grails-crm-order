@@ -30,7 +30,7 @@ grails.project.dependency.resolution = {
         test(":codenarc:0.21") { export = false }
 
         compile ":crm-core:2.0.2"
-        compile ":crm-tags:2.0.0"
+        compile ":crm-tags:2.0.2"
 
         compile ":sequence-generator:1.0"
         compile ":selection:0.9.8"
