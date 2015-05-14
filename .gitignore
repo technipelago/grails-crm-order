@@ -6,6 +6,7 @@
 
 # Ignore build artifacts
 target
+target-eclipse
 
 # Ignore packaged plugins
 *.zip
@@ -14,3 +15,7 @@ out
 stacktrace.log
 plugin.xml
 0
+.classpath
+.project
+*.sha1
+.settings

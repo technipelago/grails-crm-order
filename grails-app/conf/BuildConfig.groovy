@@ -3,36 +3,28 @@ grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
 grails.project.target.level = 1.6
 
+grails.project.dependency.resolver = "maven"
 grails.project.dependency.resolution = {
-    inherits("global") {}
-    log "warn"
-    legacyResolve false
-    repositories {
-        grailsCentral()
-        mavenCentral()
-    }
-    dependencies {
-        test "org.spockframework:spock-grails-support:0.7-groovy-2.0"
-    }
+	inherits("global") {}
+	log "warn"
+	legacyResolve false
+	repositories {
+		grailsCentral()
+		mavenLocal()
+		mavenCentral()
+	}
 
-    plugins {
-        build(":tomcat:$grailsVersion",
-                ":release:2.2.1",
-                ":rest-client-builder:1.0.3") {
-            export = false
-        }
-        runtime ":hibernate:$grailsVersion"
+	plugins {
+		build ":tomcat:7.0.55"
+		build ":release:3.0.1"
+		runtime ":hibernate4:4.3.6.1"
 
-        test(":spock:0.7") {
-            export = false
-            exclude "spock-grails-support"
-        }
-        test(":codenarc:0.21") { export = false }
+		test(":codenarc:0.22") { export = false }
 
-        compile ":crm-core:2.0.2"
-        compile ":crm-tags:2.0.2"
+		compile ":crm-core:2.4.0"
+		compile ":crm-tags:2.4.0"
 
-        compile ":sequence-generator:1.0"
-        compile ":selection:0.9.8"
-    }
+		compile ":sequence-generator:1.0"
+		compile ":selection:0.9.8"
+	}
 }

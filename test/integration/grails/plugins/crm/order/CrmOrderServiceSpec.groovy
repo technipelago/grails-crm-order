@@ -1,12 +1,13 @@
 package grails.plugins.crm.order
 
-import spock.lang.Shared
 import grails.plugins.crm.core.CrmValidationException
+import grails.test.spock.IntegrationSpec
+import spock.lang.Shared
 
 /**
  * Tests for CrmOrderService.
  */
-class CrmOrderServiceSpec extends grails.plugin.spock.IntegrationSpec {
+class CrmOrderServiceSpec extends IntegrationSpec {
 
     def crmOrderService
 
