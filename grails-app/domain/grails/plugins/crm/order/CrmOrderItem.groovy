@@ -52,7 +52,7 @@ class CrmOrderItem {
         vat(nullable: false, min: 0d, max: 1d, scale: 2)
     }
 
-    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat', 'discountPrice', 'discountPriceVAT', 'dao']
+    static transients = ['priceVAT', 'totalPrice', 'totalPriceVAT', 'totalVat', 'discountPrice', 'discountPriceVAT', 'empty', 'dao']
 
     transient Double getPriceVAT() {
         def p = price
@@ -127,6 +127,16 @@ class CrmOrderItem {
 
     String toString() {
         "$quantity $unit $productId"
+    }
+
+    transient boolean isEmpty() {
+        if(productId != null) return false
+        if(productName != null) return false
+        if(comment != null) return false
+        if(quantity != null) return false
+        if(price != null) return false
+
+        return true
     }
 
     transient Map<String, Object> getDao() {

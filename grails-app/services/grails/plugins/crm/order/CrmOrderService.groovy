@@ -25,12 +25,16 @@ import grails.plugins.crm.core.TenantUtils
 import grails.plugins.crm.core.CrmValidationException
 import grails.plugins.selection.Selectable
 import org.apache.commons.lang.StringUtils
-import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
+import org.grails.databinding.SimpleMapDataBindingSource
+
+import javax.servlet.http.HttpServletRequest
 
 /**
  * Order management features.
  */
 class CrmOrderService {
+
+    private static final List ORDER_ADDRESS_BIND_WHITELIST = ['addressee'] + CrmEmbeddedAddress.BIND_WHITELIST
 
     def grailsApplication
     def crmCoreService
@@ -38,6 +42,8 @@ class CrmOrderService {
     def crmSecurityService
     def sequenceGeneratorService
     def messageSource
+    def grailsWebDataBinder
+    def localeResolver
 
     @Listener(namespace = "crmOrder", topic = "enableFeature")
     def enableFeature(event) {
@@ -266,19 +272,16 @@ class CrmOrderService {
         }
 
         // Bind "normal" properties.
-        def args = [crmOrder, params, [include: CrmOrder.BIND_WHITELIST]]
-        new BindDynamicMethod().invoke(crmOrder, 'bind', args.toArray())
+        grailsWebDataBinder.bind(crmOrder, params as SimpleMapDataBindingSource, null, CrmOrder.BIND_WHITELIST, null, null)
 
         // Bind invoice address
         if (!crmOrder.invoice) {
             crmOrder.invoice = new CrmEmbeddedAddress()
         }
         if(params.invoice instanceof Map) {
-            args = [crmOrder.invoice, params.invoice, [include: ['addressee'] + CrmEmbeddedAddress.BIND_WHITELIST]]
-            new BindDynamicMethod().invoke(crmOrder.invoice, 'bind', args.toArray())
+            grailsWebDataBinder.bind(crmOrder.invoice, params.invoice as SimpleMapDataBindingSource, null, ORDER_ADDRESS_BIND_WHITELIST, null, null)
         } else {
-            args = [crmOrder.invoice, params, 'invoice']
-            new BindDynamicMethod().invoke(crmOrder.invoice, 'bind', args.toArray())
+            grailsWebDataBinder.bind(crmOrder.invoice, params as SimpleMapDataBindingSource, 'invoice', ORDER_ADDRESS_BIND_WHITELIST, null, null)
         }
 
         // Bind delivery address.
@@ -286,11 +289,9 @@ class CrmOrderService {
             crmOrder.delivery = new CrmEmbeddedAddress()
         }
         if(params.delivery instanceof Map) {
-            args = [crmOrder.delivery, params.delivery, [include: ['addressee'] + CrmEmbeddedAddress.BIND_WHITELIST]]
-            new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
+            grailsWebDataBinder.bind(crmOrder.delivery, params.delivery as SimpleMapDataBindingSource, null, ORDER_ADDRESS_BIND_WHITELIST, null, null)
         } else {
-            args = [crmOrder.delivery, params, 'delivery']
-            new BindDynamicMethod().invoke(crmOrder.delivery, 'bind', args.toArray())
+            grailsWebDataBinder.bind(crmOrder.delivery, params as SimpleMapDataBindingSource, 'delivery', ORDER_ADDRESS_BIND_WHITELIST, null, null)
         }
 
         if (!crmOrder.invoice.addressee) {
@@ -308,16 +309,16 @@ class CrmOrderService {
         // Bind items.
         if(params.items instanceof List) {
             for(row in params.items) {
-                def item = new CrmOrderItem(order: crmOrder)
-                args = [item, row, [include: CrmOrderItem.BIND_WHITELIST]]
-                new BindDynamicMethod().invoke(item, 'bind', args.toArray())
-                if(!item.hasErrors()) {
+                def item = row.id ? CrmOrderItem.get(row.id) : new CrmOrderItem(order: crmOrder)
+                grailsWebDataBinder.bind(item, row as SimpleMapDataBindingSource, null, CrmOrderItem.BIND_WHITELIST, null, null)
+                if(item.id) {
+                    item.save()
+                } else if(!item.hasErrors()) {
                     crmOrder.addToItems(item)
                 }
             }
         } else {
-            args = [crmOrder, params, 'items']
-            new BindDynamicMethod().invoke(crmOrder, 'bind', args.toArray())
+            bindItems(crmOrder, params)
         }
 
         if (!crmOrder.username) {
@@ -399,6 +400,39 @@ class CrmOrderService {
         }
     }
 
+
+    private void bindItems(CrmOrder crmOrder, Map params) {
+        // This is a workaround for Grails 2.4.4 data binding that does not insert a new CrmOrderItem when 'id' is null.
+        // I consider this to be a bug in Grails 2.4.4 but I'm not sure how it's supposed to work with Set.
+        // This workaround was not needed in Grails 2.2.4.
+        int i = 0
+        int miss = 0
+        while(miss < 10) {
+            def a = params["items[$i]".toString()]
+            if(a?.id) {
+                def item = CrmOrderItem.get(a.id)
+                if(crmOrder.id != item?.orderId) {
+                    throw new RuntimeException("CrmOrderItem [${item.orderId}] is not associated with CrmOrder [${crmOrder.id}]")
+                }
+                grailsWebDataBinder.bind(item, a as SimpleMapDataBindingSource, null, CrmOrderItem.BIND_WHITELIST, null, null)
+                item.save()
+            } else if(a) {
+                def item = new CrmOrderItem(order: crmOrder)
+                grailsWebDataBinder.bind(item, a as SimpleMapDataBindingSource, null, CrmOrderItem.BIND_WHITELIST, null, null)
+                if(! item.isEmpty()) {
+                    if(item.validate()) {
+                        crmOrder.addToItems(item)
+                    } else {
+                        crmOrder.errors.addAllErrors(item.errors)
+                    }
+                }
+            } else {
+                miss++
+            }
+            i++
+        }
+    }
+
     /**
      * Create a new CrmOrder instance.
      *
@@ -412,20 +446,17 @@ class CrmOrderService {
         def m = new CrmOrder(invoice: new CrmEmbeddedAddress(), delivery: new CrmEmbeddedAddress())
 
         // Bind invoice address
-        def args = [m.invoice, params, 'invoice']
-        new BindDynamicMethod().invoke(m.invoice, 'bind', args.toArray())
+        grailsWebDataBinder.bind(m.invoice, params as SimpleMapDataBindingSource, 'invoice', ORDER_ADDRESS_BIND_WHITELIST, null, null)
 
         // Bind delivery date
-        args = [m.delivery, params, 'delivery']
-        new BindDynamicMethod().invoke(m.delivery, 'bind', args.toArray())
+        grailsWebDataBinder.bind(m.delivery, params as SimpleMapDataBindingSource, 'delivery', ORDER_ADDRESS_BIND_WHITELIST, null, null)
 
         // Bind all other properties
         def date = params.orderDate
         if (date?.class == Date.class) {
             params.orderDate = new java.sql.Date(date.clearTime().time)
         }
-        args = [m, params, [include: CrmOrder.BIND_WHITELIST]]
-        new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+        grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmOrder.BIND_WHITELIST, null, null)
 
         m.tenantId = tenant
 
@@ -440,8 +471,9 @@ class CrmOrderService {
 
     CrmOrderItem addOrderItem(CrmOrder order, Map params, boolean save = false) {
         def m = new CrmOrderItem(order: order)
-        def args = [m, params]
-        new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+
+        grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, null, null, null)
+
         if (m.validate()) {
             order.addToItems(m)
             if (order.validate() && save) {
@@ -463,8 +495,9 @@ class CrmOrderService {
         def m = CrmOrderType.findByParamAndTenantId(params.param, tenant)
         if (!m) {
             m = new CrmOrderType()
-            def args = [m, params, [include: CrmOrderType.BIND_WHITELIST]]
-            new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+
+            grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmOrderType.BIND_WHITELIST, null, null)
+
             m.tenantId = tenant
             if (params.enabled == null) {
                 m.enabled = true
@@ -503,8 +536,9 @@ class CrmOrderService {
         def m = CrmOrderStatus.findByParamAndTenantId(params.param, tenant)
         if (!m) {
             m = new CrmOrderStatus()
-            def args = [m, params, [include: CrmOrderStatus.BIND_WHITELIST]]
-            new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+
+            grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmOrderStatus.BIND_WHITELIST, null, null)
+
             m.tenantId = tenant
             if (params.enabled == null) {
                 m.enabled = true
@@ -543,8 +577,9 @@ class CrmOrderService {
         def m = CrmDeliveryType.findByParamAndTenantId(params.param, tenant)
         if (!m) {
             m = new CrmDeliveryType()
-            def args = [m, params, [include: CrmDeliveryType.BIND_WHITELIST]]
-            new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+
+            grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmDeliveryType.BIND_WHITELIST, null, null)
+
             m.tenantId = tenant
             if (params.enabled == null) {
                 m.enabled = true

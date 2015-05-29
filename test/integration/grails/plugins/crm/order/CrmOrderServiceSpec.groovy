@@ -10,6 +10,7 @@ import spock.lang.Shared
 class CrmOrderServiceSpec extends IntegrationSpec {
 
     def crmOrderService
+    def grailsApplication
 
     @Shared
             type
@@ -40,9 +41,9 @@ class CrmOrderServiceSpec extends IntegrationSpec {
 
     def "order address as keys"() {
         when:
-        def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
-                'invoice.addressee': 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
-                'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown'])
+        def o = crmOrderService.saveOrder(null, [orderDate           : new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                                                 'invoice.addressee' : 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
+                                                 'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown'])
 
 
         then:
@@ -55,8 +56,8 @@ class CrmOrderServiceSpec extends IntegrationSpec {
     def "order address as Map"() {
         when:
         def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
-                invoice: [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown'],
-                delivery: [addressee: 'ACME Laboratories', postalCode: '12355', city: 'Groovytown']])
+                                                 invoice  : [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown'],
+                                                 delivery : [addressee: 'ACME Laboratories', postalCode: '12355', city: 'Groovytown']])
 
         then:
         !o.hasErrors()
@@ -65,14 +66,88 @@ class CrmOrderServiceSpec extends IntegrationSpec {
         o.delivery.postalCode == '12355'
     }
 
-    def "order items as List of Maps"() {
+
+    def "copy invoice address to delivery address"() {
+
+        // If delivery address is empty, copy invoice address (if configured to do so).
         when:
         def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
-                invoice: [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown'],
-                items: [[orderIndex: 1, productId: "water", productName: "Fresh water", unit: "l", quantity: 10, price: 10, vat: 0.25],
-                        [orderIndex: 2, productId: "air", productName: "Fresh air", unit: "m3", quantity: 100, price: 1, vat: 0.25],
-                        [orderIndex: 3, productId: "food", productName: "Fresh food", unit: "kg", quantity: 2, price: 100, vat: 0.12]]
-        ])
+                                                 invoice  : [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown']])
+
+        then:
+        o.id
+        o.delivery.isEmpty()
+
+        when:
+        grailsApplication.config.crm.order.delivery.address.copy = 'invoice'
+        crmOrderService.saveOrder(o, [:])
+
+        then:
+        !o.delivery.isEmpty()
+        o.delivery.postalCode == '12345'
+        o.delivery.city == 'Groovytown'
+
+        cleanup:
+        grailsApplication.config.crm.order.delivery.address.copy = null
+    }
+
+    def "insert order items as Map"() {
+        when:
+        def o = crmOrderService.saveOrder(null,
+                [orderDate : new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                 invoice   : [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown'],
+                 'items[0]': [orderIndex: 1, productId: "water", productName: "Fresh water", unit: "l", quantity: 10, price: 10, vat: 0.25],
+                 'items[1]': [orderIndex: 2, productId: "air", productName: "Fresh air", unit: "m3", quantity: 100, price: 1, vat: 0.25],
+                 'items[2]': [orderIndex: 3, productId: "food", productName: "Fresh food", unit: "kg", quantity: 2, price: 100, vat: 0.12]
+                ])
+
+        then:
+        !o.hasErrors()
+        o.ident()
+        o.items.size() == 3
+        o.items.find { it.productId == "water" }
+        o.items.find { it.productId == "air" }
+        o.items.find { it.productId == "food" }
+    }
+
+    def "update order items as Map"() {
+        when:
+        def o = crmOrderService.saveOrder(null,
+                [orderDate : new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                 invoice   : [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown'],
+                 'items[0]': [orderIndex: 1, productId: "water", productName: "Fresh water", unit: "l", quantity: 10, price: 10, vat: 0.25],
+                 'items[1]': [orderIndex: 2, productId: "air", productName: "Fresh air", unit: "m3", quantity: 100, price: 1, vat: 0.25],
+                 'items[2]': [orderIndex: 3, productId: "food", productName: "Fresh food", unit: "kg", quantity: 2, price: 100, vat: 0.12]
+                ])
+
+        then:
+        !o.hasErrors()
+        o.items.size() == 3
+
+        when:
+        def items = o.items.asList().sort{it.orderIndex}
+        o = crmOrderService.saveOrder(o,
+                        ['items[0]': [id: items[0].id, orderIndex: 1, productId: "water", productName: "Fresh water", unit: "l", quantity: 20, price: 10, vat: 0.25],
+                         'items[1]': [id: items[1].id, orderIndex: 2, productId: "air", productName: "Fresh air", unit: "m3", quantity: 100, price: 1.5, vat: 0.25],
+                         'items[2]': [id: items[2].id, orderIndex: 3, productId: "food", productName: "Fresh food", unit: "kg", quantity: 2, price: 100, vat: 0.12]
+                        ])
+        items = o.items.asList().sort{it.orderIndex}
+
+        then:
+        items[0].totalPriceVAT == 250
+        items[1].totalPriceVAT == 187.5
+        items[2].totalPriceVAT == 224
+    }
+
+    def "order items as List of Maps"() {
+        when:
+        def o = crmOrderService.saveOrder(null,
+                [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                 invoice  : [addressee: 'ACME Financials', postalCode: '12345', city: 'Groovytown'],
+                 items    : [[orderIndex: 1, productId: "water", productName: "Fresh water", unit: "l", quantity: 10, price: 10, vat: 0.25],
+                             [orderIndex: 2, productId: "air", productName: "Fresh air", unit: "m3", quantity: 100, price: 1, vat: 0.25],
+                             [orderIndex: 3, productId: "food", productName: "Fresh food", unit: "kg", quantity: 2, price: 100, vat: 0.12]]
+                ])
 
         then:
         !o.hasErrors()
@@ -85,10 +160,10 @@ class CrmOrderServiceSpec extends IntegrationSpec {
 
     def "create order with discount"() {
         when:
-        def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
-                'invoice.addressee': 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
-                'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown',
-                campaign: "test"])
+        def o = crmOrderService.saveOrder(null, [orderDate           : new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                                                 'invoice.addressee' : 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
+                                                 'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown',
+                                                 campaign            : "test"])
 
         then:
         !o.hasErrors()
@@ -117,12 +192,12 @@ class CrmOrderServiceSpec extends IntegrationSpec {
         def status = crmOrderService.createOrderStatus(name: "Order", true)
 
         when:
-        crmOrderService.saveOrder(null, [orderType: type, orderStatus: status,
-                customerFirstName: "Joe", customerLastName: "Average", customerCompany: "Company Inc.",
-                invoice: [address1: "Main Road 1234", postalCode: "12345", city: "Smallville"],
-                customerTel: "+4685551234", customerEmail: "joe.average@company.com", currency: "SEK",
-                items: [[orderIndex: 1, /*productId: "iPhone4s",*/ productName: "iPhone 4S 16 GB Black Unlocked",
-                        unit: "item", quantity: 1, price: 3068.8, vat: 0.25]]])
+        crmOrderService.saveOrder(null, [orderType        : type, orderStatus: status,
+                                         customerFirstName: "Joe", customerLastName: "Average", customerCompany: "Company Inc.",
+                                         invoice          : [address1: "Main Road 1234", postalCode: "12345", city: "Smallville"],
+                                         customerTel      : "+4685551234", customerEmail: "joe.average@company.com", currency: "SEK",
+                                         items            : [[orderIndex: 1, /*productId: "iPhone4s",*/ productName: "iPhone 4S 16 GB Black Unlocked",
+                                                              unit      : "item", quantity: 1, price: 3068.8, vat: 0.25]]])
         then: "productId is (intentionally) missing"
         def exception = thrown(CrmValidationException)
         exception.message == "crmOrder.validation.error"
@@ -130,10 +205,10 @@ class CrmOrderServiceSpec extends IntegrationSpec {
 
     def "set order to payed"() {
         when:
-        def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
-                                                 totalAmount: 1234.00, totalVat: 308.50,
-                        'invoice.addressee': 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
-                        'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown'])
+        def o = crmOrderService.saveOrder(null, [orderDate           : new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                                                 totalAmount         : 1234.00, totalVat: 308.50,
+                                                 'invoice.addressee' : 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
+                                                 'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown'])
         then:
         o.totalAmountVAT == 1542.50
         o.payedAmount == 0.0
