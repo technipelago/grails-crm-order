@@ -126,4 +126,36 @@ class CrmOrderServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def exception = thrown(CrmValidationException)
         exception.message == "crmOrder.validation.error"
     }
+
+    def "set order to payed"() {
+        when:
+        def o = crmOrderService.saveOrder(null, [orderDate: new Date(), customerCompany: "ACME Inc.", orderType: type, orderStatus: status,
+                                                 totalAmount: 1234.00, totalVat: 308.50,
+                        'invoice.addressee': 'ACME Financials', 'invoice.postalCode': '12345', 'invoice.city': 'Groovytown',
+                        'delivery.addressee': 'ACME Laboratories', 'delivery.postalCode': '12355', 'delivery.city': 'Groovytown'])
+        then:
+        o.totalAmountVAT == 1542.50
+        o.payedAmount == 0.0
+        o.paymentDate == null
+        o.paymentStatus == CrmOrder.PAYMENT_STATUS_UNKNOWN
+        o.paymentType == null
+        o.paymentId == null
+
+        when: "pay less than total amount minus 'crm.order.payment.margin' (default=0.5)"
+        crmOrderService.orderPayed(o, 1540, "test", "42")
+
+        then: "the order is only partially payed"
+        o.payedAmount == 1540.0
+        o.paymentDate != null
+        o.paymentStatus == CrmOrder.PAYMENT_STATUS_PARTIAL
+        o.paymentType == "test"
+        o.paymentId == "42"
+
+        when: "pay exactly on the margin"
+        crmOrderService.orderPayed(o, 1542, "test", "42")
+
+        then: "the order is considered fully payed (we give away 0.50)"
+        o.payedAmount == 1542.0
+        o.paymentStatus == CrmOrder.PAYMENT_STATUS_FULL
+    }
 }

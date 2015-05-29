@@ -319,6 +319,7 @@ class CrmOrderService {
             args = [crmOrder, params, 'items']
             new BindDynamicMethod().invoke(crmOrder, 'bind', args.toArray())
         }
+
         if (!crmOrder.username) {
             crmOrder.username = currentUser?.username
         }
@@ -401,7 +402,7 @@ class CrmOrderService {
     /**
      * Create a new CrmOrder instance.
      *
-     * @deprecated use {@link #save(CrmOrder, Map)} instead
+     * @deprecated use {@link #saveOrder(CrmOrder, Map)} instead
      * @param params property values
      * @param save true if the instance should be persisted immediately
      * @return the created order instance
@@ -588,8 +589,9 @@ class CrmOrderService {
     }
 
     private boolean isFullyPayed(final CrmOrder order) {
-        Integer total = Math.round(order.totalAmountVAT ?: 0)
-        Integer payed = (order.payedAmount ?: 0) + 1
+        Number paymentMargin = grailsApplication.config.crm.order.payment.margin ?: 0.5
+        Double total = order.totalAmountVAT ?: 0
+        Double payed = (order.payedAmount ?: 0) + paymentMargin
         return payed >= total
     }
 }

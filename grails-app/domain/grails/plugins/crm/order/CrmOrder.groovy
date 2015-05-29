@@ -217,11 +217,20 @@ class CrmOrder {
     }
 
     protected Pair<Double, Double> calculateAmount() {
-        Double sum = 0
-        Double vat = 0
-        for (item in items) {
-            sum += item.totalPrice
-            vat += item.totalVat
+        Double sum
+        Double vat
+        // If we have no items we just return whatever in totalAmount.
+        // This way we can have an order without items, but still use totalAmount + totalVat.
+        if(items == null || items.isEmpty()) {
+            sum = totalAmount ?: 0
+            vat = totalVat ?: 0
+        } else {
+            sum = 0
+            vat = 0
+            for (item in items) {
+                sum += item.totalPrice
+                vat += item.totalVat
+            }
         }
         new Pair(sum, vat)
     }
