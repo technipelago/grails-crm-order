@@ -569,4 +569,27 @@ class CrmOrderService {
             }
         }
     }
+
+    void orderPayed(final CrmOrder order, Double amount = null, String paymentType = null, String paymentId = null) {
+        if(amount == null) {
+            amount = order.totalAmountVAT
+        }
+        order.paymentDate = new Date()
+        order.payedAmount = Math.round(amount)
+        order.paymentStatus = isFullyPayed(order) ? CrmOrder.PAYMENT_STATUS_FULL : CrmOrder.PAYMENT_STATUS_PARTIAL
+        order.paymentType = paymentType
+        order.paymentId = paymentId
+
+        order.setSyncPending() // Will trigger Visma/SPCS sync.
+
+        order.save(flush: true)
+
+        event(for: "crmOrder", topic: "payed", data: [tenant: order.tenantId, id: order.id])
+    }
+
+    private boolean isFullyPayed(final CrmOrder order) {
+        Integer total = Math.round(order.totalAmountVAT ?: 0)
+        Integer payed = (order.payedAmount ?: 0) + 1
+        return payed >= total
+    }
 }

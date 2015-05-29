@@ -250,6 +250,14 @@ class CrmOrder {
             map.delivery = delivery.getDao()
         }
         map.totalAmountVAT = getTotalAmountVAT()
+
+        if(paymentDate || payedAmount) {
+            map.payedAmount = payedAmount
+            map.paymentDate = paymentDate
+            map.paymentType = paymentType
+            map.paymentId = paymentId
+        }
+
         map.items = items?.collect { it.getDao() }
         return map
     }
