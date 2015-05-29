@@ -139,6 +139,7 @@ println "Order #$order created with status ${order.status} for ${order.customer}
 
 == Changes
 
+2.0.1:: New method `CrmOrderService#orderPayed(...)` to set payed amount and payment status on an order
 2.0.0:: First public release
 
 == License
