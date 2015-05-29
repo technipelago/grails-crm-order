@@ -27,12 +27,12 @@ grails.project.dependency.resolution = {
             export = false
             exclude "spock-grails-support"
         }
-        test(":codenarc:0.21") { export = false }
+        test(":codenarc:0.22") { export = false }
 
         compile ":crm-core:2.0.2"
         compile ":crm-tags:2.0.2"
 
-        compile ":sequence-generator:1.0"
+        compile ":sequence-generator:1.1"
         compile ":selection:0.9.8"
     }
 }
