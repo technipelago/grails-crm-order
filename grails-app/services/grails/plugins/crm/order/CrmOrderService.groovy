@@ -581,7 +581,7 @@ class CrmOrderService {
         order.paymentType = paymentType
         order.paymentId = paymentId
 
-        order.setSyncPending() // Will trigger Visma/SPCS sync.
+        order.setSyncPending() // To tell external systems that this order needs syncing.
 
         order.save(flush: true)
 
