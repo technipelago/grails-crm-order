@@ -16,7 +16,7 @@
 
 class CrmOrderGrailsPlugin {
     def groupId = ""
-    def version = "2.4.1"
+    def version = "2.4.2-SNAPSHOT"
     def grailsVersion = "2.4 > *"
     def dependsOn = [:]
     def pluginExcludes = [
