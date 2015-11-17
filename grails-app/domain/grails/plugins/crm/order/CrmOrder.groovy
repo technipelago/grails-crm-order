@@ -21,6 +21,7 @@ import grails.plugins.crm.core.AuditEntity
 import grails.plugins.crm.core.TenantEntity
 import grails.plugins.sequence.SequenceEntity
 import grails.plugins.crm.core.Pair
+import grails.util.Holders
 
 /**
  * Order domain class.
@@ -115,7 +116,7 @@ class CrmOrder {
         customerCompany(maxSize: 80, nullable: true)
         customerTel(maxSize: 20, nullable: true)
         customerEmail(maxSize: 80, nullable: true, email: true)
-        currency(maxSize: 4, nullable: true)
+        currency(maxSize: 4, blank: false)
         totalAmount(min: -999999d, max: 999999d, scale: 2)
         totalVat(min: -999999d, max: 999999d, scale: 2)
         invoice(nullable: true)
@@ -201,6 +202,10 @@ class CrmOrder {
     def beforeValidate() {
         if (!number) {
             number = getNextSequenceNumber()
+        }
+
+        if(! currency) {
+            currency = Holders.getConfig().crm.currency.default ?: 'EUR'
         }
 
         def (tot, vat) = calculateAmount()

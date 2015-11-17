@@ -43,7 +43,6 @@ class CrmOrderService {
     def sequenceGeneratorService
     def messageSource
     def grailsWebDataBinder
-    def localeResolver
 
     @Listener(namespace = "crmOrder", topic = "enableFeature")
     def enableFeature(event) {
@@ -83,13 +82,13 @@ class CrmOrderService {
     def deleteTenant(event) {
         def tenant = event.id
         def count = CrmOrder.countByTenantId(tenant)
-        // Remove all campaigns
+        // Remove all orders
         CrmOrder.findAllByTenantId(tenant)*.delete()
         // Remove types and statuses.
         CrmOrderStatus.findAllByTenantId(tenant)*.delete()
         CrmOrderType.findAllByTenantId(tenant)*.delete()
         CrmDeliveryType.findAllByTenantId(tenant)*.delete()
-        log.warn("Deleted $count campaigns in tenant $tenant")
+        log.warn("Deleted $count orders in tenant $tenant")
     }
 
     /**
