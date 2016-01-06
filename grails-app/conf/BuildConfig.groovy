@@ -3,28 +3,44 @@ grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
 grails.project.target.level = 1.6
 
+grails.project.fork = [
+    //  compile: [maxMemory: 256, minMemory: 64, debug: false, maxPerm: 256, daemon:true],
+    test: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, forkReserve:false],
+    run: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, forkReserve:false],
+    war: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, forkReserve:false],
+    console: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256]
+]
+
 grails.project.dependency.resolver = "maven"
 grails.project.dependency.resolution = {
-	inherits("global") {}
-	log "warn"
-	legacyResolve false
-	repositories {
-		grailsCentral()
-		mavenLocal()
-		mavenCentral()
-	}
+    inherits("global") {}
+    log "warn"
+    legacyResolve false
+    repositories {
+        grailsCentral()
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        // See https://jira.grails.org/browse/GPHIB-30
+        test("javax.validation:validation-api:1.1.0.Final") { export = false }
+        test("org.hibernate:hibernate-validator:5.0.3.Final") { export = false }
+    }
+    plugins {
+        build(":release:3.0.1",
+                ":rest-client-builder:1.0.3") {
+            export = false
+        }
+        test(":hibernate4:4.3.6.1") {
+            export = false
+        }
 
-	plugins {
-		build ":tomcat:7.0.55"
-		build ":release:3.0.1"
-		runtime ":hibernate4:4.3.6.1"
+        test(":codenarc:0.22") { export = false }
 
-		test(":codenarc:0.22") { export = false }
+        compile ":crm-core:2.4.2"
+        compile ":crm-tags:2.4.1"
 
-		compile ":crm-core:2.4.1"
-		compile ":crm-tags:2.4.1"
-
-		compile ":sequence-generator:1.2"
-		compile ":selection:0.9.8"
-	}
+        compile ":sequence-generator:1.2"
+        compile ":selection:0.9.8"
+    }
 }

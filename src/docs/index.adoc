@@ -139,6 +139,7 @@ println "Order #$order created with status ${order.status} for ${order.customer}
 
 == Changes
 
+2.4.2:: Fix for default currency
 2.4.1:: Fix for data binding problem with associations (order items)
 2.4.0:: First version compatible with Grails 2.4.4
 2.0.1:: New method `CrmOrderService#orderPayed(...)` to set payed amount and payment status on an order
